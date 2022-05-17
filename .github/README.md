@@ -70,3 +70,10 @@ jobs:
       PUBLIC_URL: ${{ needs.setup_workflow_env.outputs.PUBLIC_URL }}
       POSTGRES_ENABLED: ${{ needs.setup_workflow_env.outputs.POSTGRES_ENABLED == 'true'}}
 ```
+
+TODO
+----
+
+* Pass environment variables to production pod from repo
+* Pass environment variables to build and/or test build containers
+* Capture the test artefacts (e.g. cypress videos). Also on errors.
