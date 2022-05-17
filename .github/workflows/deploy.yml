@@ -127,7 +127,7 @@ jobs:
       run: |
         echo "POSTGRES_HOST=${{ inputs.POSTGRES_HOST }}" >> $GITHUB_ENV
     - if: inputs.POSTGRES_HOST != ''
-      name: Set Database credentials
+      name: Set Database credentials as environment variables
       run: |      
         POSTGRES_USER=$(echo -n '${{ secrets.POSTGRES_USER }}' | base64 -w0)
         POSTGRES_PASSWORD=$(echo -n '${{ secrets.POSTGRES_PASSWORD }}' | base64 -w0)
@@ -144,6 +144,18 @@ jobs:
           POSTGRES_PASSWORD: $POSTGRES_PASSWORD
           POSTGRES_DB: $POSTGRES_DB
           POSTGRES_HOST: $POSTGRES_HOST
+        EOF
+        kubectl replace -f secrets.yaml -n "${{ inputs.APP_NAME }}-${{ github.ref_name }}" --force
+    - if: inputs.POSTGRES_HOST == ''
+      name: Set environment variables      
+      run: |
+        cat > secrets.yaml <<EOF
+        apiVersion: v1
+        kind: Secret
+        metadata:
+          name: ${{ inputs.APP_NAME }}-${{ github.ref_name }}
+        type: Opaque
+        data: {}
         EOF
         kubectl replace -f secrets.yaml -n "${{ inputs.APP_NAME }}-${{ github.ref_name }}" --force
     - name: Deploy using helm and the local helm chart
