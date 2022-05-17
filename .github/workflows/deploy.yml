@@ -53,8 +53,12 @@ jobs:
   deploy:
     runs-on: 'ubuntu-latest'
     steps:
-    - uses: actions/checkout@v1
+# This step will not have access to the sources of the caller!
+# This depends on the DOCKER_TAG passed pointing to the right container image
+    - uses: actions/checkout@v3
       name: Checkout
+      with:
+        repository: acdh-oeaw/gl-autodevops-minimal-port
     - name: Kubernetes credentials
       run: |
         mkdir ${HOME}/.kube
