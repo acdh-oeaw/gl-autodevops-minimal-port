@@ -57,7 +57,7 @@ jobs:
       - name: Set up tests herokuish and heroku buildpack
         run: |
           cat <<EOF > Dockerfile
-          FROM {{ $inputs.herokuish_base_image }}
+          FROM ${{ inputs.herokuish_base_image }}
           COPY . /tmp/app
           ENV BUILDPACK_URL=${{ inputs.BUILDPACK_URL }}
           ENV USER=herokuishuser
