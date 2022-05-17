@@ -93,7 +93,11 @@ jobs:
           path: "/"
           annotations:
             kubernetes.io/ingress.class: "nginx"
-            nginx.ingress.kubernetes.io/app-root: ${{ inputs.APP_ROOT }}
+        EOF
+        if [ '${{ inputs.APP_ROOT }}x' != '/x' ]
+        then echo '    nginx.ingress.kubernetes.io/app-root: ${{ inputs.APP_ROOT }}' >> auto-deploy-app-values.yaml
+        fi
+        cat >> auto-deploy-app-values.yaml <<EOF
         livenessProbe:
           path: "${{ inputs.APP_ROOT }}"
           initialDelaySeconds: 15
