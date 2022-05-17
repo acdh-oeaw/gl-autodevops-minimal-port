@@ -16,6 +16,10 @@ on:
       default_port:
         required: true
         type: string
+      herokuish_base_image:
+        required: false
+        type: string
+        default: gliderlabs/herokuish
       BUILDPACK_URL:
         required: false
         type: string
@@ -32,10 +36,10 @@ on:
         required: false
         type: string
         default: test
-      DATABASE_URL: 
+      POSTGRES_ENABLED:
         required: false
         type: string
-        default: "postgres://user:testing-password@postgres:5432/test"  
+        default: "true"
   workflow_dispatch: {}
   repository_dispatch:
     types: [run]
@@ -53,8 +57,8 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up tests herokuish and heroku buildpack
         run: |
-          cat <<EOF > Dockerfile  
-          FROM gliderlabs/herokuish
+          cat <<EOF > Dockerfile
+          FROM {{ $inputs.herokuish_base_image }}
           COPY . /tmp/app
           ENV BUILDPACK_URL=${{ inputs.BUILDPACK_URL }}
           ENV USER=herokuishuser
@@ -70,7 +74,8 @@ jobs:
       - name: Create test services network
         run: |
           docker network create --internal test-services 
-      - name: Set up a test database container
+      - if: inputs.POSTGRES_ENABLED == 'true'
+        name: Set up a test database container
         run: |
            # The following service is isolated from the internet
            docker run -d --name postgres --network test-services -p 5432:5432 -e POSTGRES_DB=${{ inputs.POSTGRES_DB }} -e POSTGRES_USER=${{ inputs.POSTGRES_USER }} -e POSTGRES_PASSWORD=${{ inputs.PGPASSWORD }} postgres:9.6.16
