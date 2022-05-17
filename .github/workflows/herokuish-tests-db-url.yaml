@@ -1,0 +1,99 @@
+
+name: Test using herokuish (DB credentials in DATABASE_URL)
+on:
+  workflow_call:  
+    inputs:
+      registry_root:
+        required: true
+        type: string
+      image_tagged:
+        required: true
+        type: string
+      source_image:
+        required: true
+        type: string
+      default_port:
+        required: true
+        type: string
+      BUILDPACK_URL:
+        required: false
+        type: string
+        default: ""
+      PGPASSWORD: 
+        required: false
+        type: string
+        default: testing-password
+      POSTGRES_USER: 
+        required: false
+        type: string
+        default: user
+      POSTGRES_DB: 
+        required: false
+        type: string
+        default: test
+  workflow_dispatch: {}
+  repository_dispatch:
+    types: [run]
+jobs:
+  test:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1 
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+# this is an example of detection not working (only in herokuish)
+# Warning: Multiple default buildpacks reported the ability to handle this app. The first buildpack in the list below will be used.
+# nodejs, php
+      - name: Set up tests herokuish and heroku buildpack
+        run: |
+          cat <<EOF > Dockerfile  
+          FROM gliderlabs/herokuish
+          COPY . /tmp/app
+          ENV BUILDPACK_URL=${{ inputs.BUILDPACK_URL }}
+          ENV USER=herokuishuser
+          EOF
+      - name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ inputs.registry_root }}${{ inputs.image_tagged }}/${{ github.ref_name }}:${{ github.sha }}-test
+      - name: Create test services network
+        run: |
+          docker network create --internal test-services 
+      - name: Set up a test database container
+        run: |
+           # The following service is isolated from the internet
+           docker run -d --name postgres --network test-services -p 5432:5432 -e POSTGRES_DB=${{ inputs.POSTGRES_DB }} -e POSTGRES_USER=${{ inputs.POSTGRES_USER }} -e POSTGRES_PASSWORD=${{ inputs.PGPASSWORD }} postgres:9.6.16
+           cat > psql-test.sh <<EOF
+           export PGPASSWORD=${{ inputs.PGPASSWORD }}
+           run=1
+           psql -h 127.0.0.1 -U user -d test -c \\q 2>/dev/null
+           while [ $? == 2 ]
+           do sleep 1
+              run=$(($run+1))
+              if [ $run -gt 59 ]; then break; fi
+              echo -n .
+              psql -h 127.0.0.1 -U user -d test -c \\q 2>/dev/null
+           done
+           EOF
+           bash psql-test.sh
+      - name: Run tests using herokuish and heroku buildpack (DB credentials in multiple variables)
+        run: |
+          cid=$(docker create -t -e POSTGRES_DB=${{ inputs.POSTGRES_DB }} -e POSTGRES_USER=${{ inputs.POSTGRES_USER }} -e POSTGRES_PASSWORD=${{ inputs.PGPASSWORD }} -e POSTGRES_HOST=postgres ${{ inputs.registry_root }}${{ inputs.image_tagged }}/${{ github.ref_name }}:${{ github.sha }}-test /bin/herokuish buildpack test)
+          docker network connect test-services $cid
+          docker start -i $cid     
+      - name: Run tests using herokuish and heroku buildpack
+# This is a bit more elaborate so the container has access to the internet via the host
+# and in addition to the test services network which is isolated from the internet
+        run: |
+          cid=$(docker create -t -e DATABASE_URL=postgres://${{ inputs.POSTGRES_USER }}:${{ inputs.PGPASSWORD }}@postgres:5432/${{ inputs.POSTGRES_DB }} ${{ inputs.image_tagged }}:${{ github.ref_name }}-test /bin/herokuish buildpack test)
+          docker network connect test-services $cid
+          docker start -i $cid

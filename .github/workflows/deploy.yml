@@ -1,0 +1,151 @@
+name: Deploy
+on:
+  workflow_call:  
+    inputs:
+      DOCKER_TAG:
+        required: true
+        type: string
+      APP_NAME:
+        required: true
+        type: string
+      APP_ROOT:
+        required: true
+        type: string
+      SERVICE_ID:
+        required: true
+        type: string
+      PUBLIC_URL:
+        required: true
+        type: string
+      POSTGRES_ENABLED:
+        required: false
+        type: boolean
+        default: false
+      POSTGRES_VERSION:
+        required: false
+        type: string
+        default: 9.6.16
+      POSTGRES_HOST:
+        required: false
+        type: string
+        default: ''
+      POSTGRES_SIZE:
+        required: false
+        type: string
+        default: '1Gi'
+    secrets:
+      ACDH_KUBE_CONFIG:
+        description: 'The kubctl config file to access the ACDH kubernetes'
+        required: true
+      POSTGRES_USER:
+        description: 'User for the deployed PostgreSQL database'
+        required: false
+      POSTGRES_DB: 
+        description: 'Database name for the deployed PostgreSQL database'
+        required: false
+      POSTGRES_PASSWORD: 
+        description: 'Password name for the deployed PostgreSQL database'
+        required: false      
+  workflow_dispatch: {}
+  repository_dispatch:
+    types: [run]
+jobs:
+  deploy:
+    runs-on: 'ubuntu-latest'
+    steps:
+    - uses: actions/checkout@v1
+      name: Checkout
+    - name: Kubernetes credentials
+      run: |
+        mkdir ${HOME}/.kube
+        echo ${{ secrets.ACDH_KUBE_CONFIG }} | base64 --decode > ${HOME}/.kube/config
+        chmod 0600 ${HOME}/.kube/config
+        kubectl config set-context --current --namespace=${{ inputs.APP_NAME }}-${{ github.ref_name }}
+        kubectl get pod
+    - name: Create auto-deploy-app-values.yaml
+      run: |
+        cat > auto-deploy-app-values.yaml <<EOF
+        replicaCount: 1
+        image:
+          repository: ${{ inputs.DOCKER_TAG }}
+          tag: ${{ github.sha }}
+          pullPolicy: Always
+        extraLabels:
+          "ID": "${{ inputs.SERVICE_ID }}"
+        github:
+          app: ${{ inputs.APP_NAME }}
+          envURL: ${{ github.repositoryUrl }}
+        service:
+          enabled: true
+          name: ${{ inputs.APP_NAME }}
+          url: ${{ inputs.PUBLIC_URL }}
+          additionalHosts:
+            - ${{ inputs.APP_NAME }}-${{ github.ref_name }}.acdh-cluster.arz.oeaw.ac.at
+          type: ClusterIP
+          externalPort: 5000
+          internalPort: 5000
+        ingress:
+          enabled: true
+          path: "/"
+          annotations:
+            kubernetes.io/ingress.class: "nginx"
+            nginx.ingress.kubernetes.io/app-root: ${{ inputs.APP_ROOT }}
+        livenessProbe:
+          path: "${{ inputs.APP_ROOT }}"
+          initialDelaySeconds: 15
+          timeoutSeconds: 15
+          scheme: "HTTP"
+          probeType: "httpGet"
+        readinessProbe:
+          path: "${{ inputs.APP_ROOT }}"
+          initialDelaySeconds: 5
+          timeoutSeconds: 3
+          scheme: "HTTP"
+          probeType: "httpGet"
+        EOF
+    - if: inputs.POSTGRES_ENABLED
+      name: Deploy PostgreSQL
+      run: |
+        helm repo add bitnami https://charts.bitnami.com/bitnami
+        helm upgrade --install --atomic --wait --version 8.2.1 \
+          --set fullnameOverride="${{ inputs.APP_NAME }}-postgres" \
+          --set postgresqlUsername="${{ secrets.POSTGRES_USER }}" \
+          --set postgresqlPassword="${{ secrets.POSTGRES_PASSWORD }}" \
+          --set postgresqlDatabase="${{ secrets.POSTGRES_DB }}" \
+          --set image.tag="${{ inputs.POSTGRES_VERSION }}" \
+          --set persistence.size="${{ inputs.POSTGRES_SIZE }}" \
+          --namespace="${{ inputs.APP_NAME }}-${{ github.ref_name }}" \
+          "${{ inputs.APP_NAME }}-postgres" \
+          bitnami/postgresql
+        echo "POSTGRES_HOST=${{ inputs.APP_NAME }}-postgres" >> $GITHUB_ENV
+    - if: inputs.POSTGRES_HOST != ''
+      name: Set PostgreSQL server
+      run: |
+        echo "POSTGRES_HOST=${{ inputs.POSTGRES_HOST }}" >> $GITHUB_ENV
+    - if: ${{ env.POSTGRES_HOST }} != '' 
+      name: Set Database credentials
+      run: |      
+        POSTGRES_USER=$(echo -n '${{ secrets.POSTGRES_USER }}' | base64 -w0)
+        POSTGRES_PASSWORD=$(echo -n '${{ secrets.POSTGRES_PASSWORD }}' | base64 -w0)
+        POSTGRES_DB=$(echo -n '${{ secrets.POSTGRES_DB }}' | base64 -w0)
+        POSTGRES_HOST=$(echo -n "$POSTGRES_HOST" | base64 -w0)
+        cat > secrets.yaml <<EOF
+        apiVersion: v1
+        kind: Secret
+        metadata:
+          name: ${{ inputs.APP_NAME }}-${{ github.ref_name }}
+        type: Opaque
+        data:
+          POSTGRES_USER: $POSTGRES_USER
+          POSTGRES_PASSWORD: $POSTGRES_PASSWORD
+          POSTGRES_DB: $POSTGRES_DB
+          POSTGRES_HOST: $POSTGRES_HOST
+        EOF
+        kubectl replace -f secrets.yaml -n "${{ inputs.APP_NAME }}-${{ github.ref_name }}" --force
+    - name: Deploy using helm and the local helm chart
+      run: |
+        helm upgrade ${{ inputs.APP_NAME }} \
+          --values auto-deploy-app-values.yaml --install --atomic --wait \
+          --set application.database_url="postgres://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@${{ env.POSTGRES_HOST }}:5432/${{ secrets.POSTGRES_DB }}" \
+          --set application.secretName="${{ inputs.APP_NAME }}-${{ github.ref_name }}" \
+          .github/auto-deploy-app

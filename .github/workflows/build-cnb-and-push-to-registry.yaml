@@ -1,0 +1,63 @@
+name: Build CNB and push to registry
+on:
+  workflow_call:  
+    inputs:
+      registry_root:
+        required: true
+        type: string
+      image_tagged:
+        required: true
+        type: string
+      source_image:
+        required: true
+        type: string
+      default_port:
+        required: true
+        type: string   
+  workflow_dispatch: {}
+  repository_dispatch:
+    types: [run]
+jobs:
+  build_and_push_to_registry:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+# CNB are not multi-arch ready as of May 2022 so this is not needed
+# It causes problems with this workflow so test later
+#      - name: Set up QEMU
+#        uses: docker/setup-qemu-action@v1
+#      - name: Set up Docker Buildx
+#        uses: docker/setup-buildx-action@v1
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1 
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build using heroku/buildpacks:20 CNB
+        uses: dfreilich/pack-action@v2.0.0
+        with:
+          args: 'build ${{ inputs.source_image }} --builder heroku/buildpacks:20'
+      - name: Add default port to image
+        run: |
+          cat >> Dockerfile <<EOF
+          ARG source_image
+          FROM ${{ inputs.source_image }}
+          ARG default_port
+          ENV PORT=${{ inputs.default_port}}
+          EXPOSE ${{ inputs.default_port }}
+          EOF
+      - name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          build-args: |
+            default_port=${{ inputs.default_port }}
+            source_image=${{ inputs.source_image }}
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ inputs.registry_root }}${{ inputs.image_tagged }}/${{ github.ref_name }}:${{ github.sha }}
+            ${{ inputs.registry_root }}${{ inputs.image_tagged }}/${{ github.ref_name }}
+# acdhch/${{ inputs.image_tagged }}
