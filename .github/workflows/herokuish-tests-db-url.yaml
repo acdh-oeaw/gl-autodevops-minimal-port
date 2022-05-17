@@ -31,6 +31,10 @@ on:
         required: false
         type: string
         default: test
+      POSTGRES_ENABLED: 
+        required: false
+        type: string
+        default: "true"
   workflow_dispatch: {}
   repository_dispatch:
     types: [run]
@@ -68,7 +72,8 @@ jobs:
       - name: Create test services network
         run: |
           docker network create --internal test-services 
-      - name: Set up a test database container
+      - if: inputs.POSTGRES_ENABLED == 'true'
+        name: Set up a test database container
         run: |
            # The following service is isolated from the internet
            docker run -d --name postgres --network test-services -p 5432:5432 -e POSTGRES_DB=${{ inputs.POSTGRES_DB }} -e POSTGRES_USER=${{ inputs.POSTGRES_USER }} -e POSTGRES_PASSWORD=${{ inputs.PGPASSWORD }} postgres:9.6.16
@@ -86,11 +91,6 @@ jobs:
            EOF
            bash psql-test.sh
       - name: Run tests using herokuish and heroku buildpack (DB credentials in multiple variables)
-        run: |
-          cid=$(docker create -t -e POSTGRES_DB=${{ inputs.POSTGRES_DB }} -e POSTGRES_USER=${{ inputs.POSTGRES_USER }} -e POSTGRES_PASSWORD=${{ inputs.PGPASSWORD }} -e POSTGRES_HOST=postgres ${{ inputs.registry_root }}${{ inputs.image_tagged }}/${{ github.ref_name }}:${{ github.sha }}-test /bin/herokuish buildpack test)
-          docker network connect test-services $cid
-          docker start -i $cid     
-      - name: Run tests using herokuish and heroku buildpack
 # This is a bit more elaborate so the container has access to the internet via the host
 # and in addition to the test services network which is isolated from the internet
         run: |
