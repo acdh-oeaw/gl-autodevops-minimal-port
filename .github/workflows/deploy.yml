@@ -126,7 +126,7 @@ jobs:
       name: Set PostgreSQL server
       run: |
         echo "POSTGRES_HOST=${{ inputs.POSTGRES_HOST }}" >> $GITHUB_ENV
-    - if: ${{ env.POSTGRES_HOST }} != '' 
+    - if: inputs.POSTGRES_HOST != ''
       name: Set Database credentials
       run: |      
         POSTGRES_USER=$(echo -n '${{ secrets.POSTGRES_USER }}' | base64 -w0)
