@@ -61,7 +61,6 @@ jobs:
           COPY . /tmp/app
           ENV BUILDPACK_URL=${{ inputs.BUILDPACK_URL }} \\
             USER=herokuishuser
-          RUN --mount=type=secret,id=secrets cp /run/secrets/secrets /tmp/env/
           EOF
       - name: Build and push
         uses: docker/build-push-action@v2
