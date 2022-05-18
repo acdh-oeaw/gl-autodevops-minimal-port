@@ -91,7 +91,7 @@ jobs:
            done
            EOF
            bash psql-test.sh
-      - name: Run tests using herokuish and heroku buildpack (DB credentials in multiple variables)
+      - name: Run tests using herokuish and heroku buildpack (DB credentials in DATABASE_URL)
         env:
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
 # This is a bit more elaborate so the container has access to the internet via the host
