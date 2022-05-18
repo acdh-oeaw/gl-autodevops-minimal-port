@@ -59,8 +59,9 @@ jobs:
           cat <<EOF > Dockerfile
           FROM ${{ inputs.herokuish_base_image }}
           COPY . /tmp/app
-          ENV BUILDPACK_URL=${{ inputs.BUILDPACK_URL }}
-          ENV USER=herokuishuser
+          ENV BUILDPACK_URL=${{ inputs.BUILDPACK_URL }} \\
+            USER=herokuishuser
+          RUN --mount=type=secret,id=secrets cp /run/secrets/secrets /tmp/env/
           EOF
       - name: Build and push
         uses: docker/build-push-action@v2
@@ -92,9 +93,13 @@ jobs:
            EOF
            bash psql-test.sh
       - name: Run tests using herokuish and heroku buildpack (DB credentials in multiple variables)
+        env:
+          SECRETS_CONTEXT: ${{ toJson(secrets) }}
 # This is a bit more elaborate so the container has access to the internet via the host
 # and in addition to the test services network which is isolated from the internet
         run: |
-          cid=$(docker create -t -e DATABASE_URL=postgres://${{ inputs.POSTGRES_USER }}:${{ inputs.PGPASSWORD }}@postgres:5432/${{ inputs.POSTGRES_DB }} ${{ inputs.registry_root }}${{ inputs.image_tagged }}/${{ github.ref_name }}:${{ github.sha }}-test /bin/herokuish buildpack test)
+          echo -n "$SECRETS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("K8S_SECRET_"))]|map("\(.key|sub("K8S_SECRET_"; ""))=\(.value|tostring|@sh)")|.[]' > secrets.env
+          cid=$(docker create -t --env-file secrets.env -e DATABASE_URL=postgres://${{ inputs.POSTGRES_USER }}:${{ inputs.PGPASSWORD }}@postgres:5432/${{ inputs.POSTGRES_DB }} ${{ inputs.registry_root }}${{ inputs.image_tagged }}/${{ github.ref_name }}:${{ github.sha }}-test /bin/herokuish buildpack test)
           docker network connect test-services $cid
           docker start -i $cid
+          rm secrets.env

@@ -35,18 +35,24 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create secrets environment file for pack command
+        env:
+          SECRETS_CONTEXT: ${{ toJson(secrets) }}
+        run: |
+          echo -n "$SECRETS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("K8S_SECRET_"))]|map("\(.key|sub("K8S_SECRET_"; ""))=\(.value|tostring|@sh)")|.[]' > secrets.env
       - name: Build using heroku/buildpacks:20 CNB
         uses: dfreilich/pack-action@v2.0.0
         with:
-          args: 'build ${{ inputs.source_image }} --builder heroku/buildpacks:20'
+          args: 'build ${{ inputs.source_image }} --env-file secrets.env --builder heroku/buildpacks:20'
       - name: Add default port to image
-        run: |
-          cat >> Dockerfile <<EOF
+        run: |          
+          rm secrets.env
+          cat > Dockerfile <<EOF
           ARG source_image
           FROM ${{ inputs.source_image }}
           ARG default_port
-          ENV PORT=${{ inputs.default_port}}
-          EXPOSE ${{ inputs.default_port }}
+          ENV PORT=\${default_port}
+          EXPOSE \${default_port}
           EOF
       - name: Build and push
         uses: docker/build-push-action@v2
