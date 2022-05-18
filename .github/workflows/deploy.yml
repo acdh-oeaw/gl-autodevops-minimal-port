@@ -33,6 +33,10 @@ on:
         required: false
         type: string
         default: '1Gi'
+      HELM_UPGRADE_EXTRA_ARGS:
+        required: false
+        type: string
+        default: ''
     secrets:
       ACDH_KUBE_CONFIG:
         description: 'The kubctl config file to access the ACDH kubernetes'
@@ -176,9 +180,8 @@ jobs:
       env:
         SECRETS_CONTEXT: ${{ toJson(secrets) }} 
       run: |
-        HELM_UPGRADE_EXTRA_ARGS="$(echo -n "$SECRETS_CONTEXT" | jq -r '.HELM_UPGRADE_EXTRA_ARGS|select(.!=null)')"
         helm upgrade ${{ inputs.APP_NAME }} \
           --values auto-deploy-app-values.yaml --install --atomic --wait \
           --set application.database_url="postgres://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@${{ env.POSTGRES_HOST }}:5432/${{ secrets.POSTGRES_DB }}" \
-          --set application.secretName="${{ inputs.APP_NAME }}-${{ github.ref_name }}" $HELM_UPGRADE_EXTRA_ARGS \
+          --set application.secretName="${{ inputs.APP_NAME }}-${{ github.ref_name }}" ${{ inputs.HELM_UPGRADE_EXTRA_ARGS }} \
           .github/auto-deploy-app
