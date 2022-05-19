@@ -104,8 +104,8 @@ jobs:
       - name: Get test artifacts
         if: always()
         run: |
-          mkdir -p output/cypress
-          docker cp test-run-step:/app/cypress/ output/cypress
+          mkdir -p output
+          docker cp test-run-step:/app/cypress/ output
           rm secrets.env      
       - name: Store test artifacts
         uses: actions/upload-artifact@v3

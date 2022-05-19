@@ -97,7 +97,18 @@ jobs:
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
         run: |
           echo -n "$SECRETS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("K8S_SECRET_"))]|map("\(.key|sub("K8S_SECRET_"; ""))=\(.value|tostring|@sh)")|.[]' > secrets.env
-          cid=$(docker create -t --env-file secrets.env -e POSTGRES_DB=${{ inputs.POSTGRES_DB }} -e POSTGRES_USER=${{ inputs.POSTGRES_USER }} -e POSTGRES_PASSWORD=${{ inputs.PGPASSWORD }} -e POSTGRES_HOST=postgres ${{ inputs.registry_root }}${{ inputs.image_tagged }}/${{ github.ref_name }}:${{ github.sha }}-test /bin/herokuish buildpack test)
-          docker network connect test-services $cid
-          docker start -i $cid
-          rm secrets.env
+          docker create -t --name test-run-step --env-file secrets.env -e POSTGRES_DB=${{ inputs.POSTGRES_DB }} -e POSTGRES_USER=${{ inputs.POSTGRES_USER }} -e POSTGRES_PASSWORD=${{ inputs.PGPASSWORD }} -e POSTGRES_HOST=postgres ${{ inputs.registry_root }}${{ inputs.image_tagged }}/${{ github.ref_name }}:${{ github.sha }}-test /bin/herokuish buildpack test
+          docker network connect test-services test-run-step
+          docker start -i test-run-step
+      - name: Get test artifacts
+        if: always()
+        run: |
+          mkdir -p output
+          docker cp test-run-step:/app/cypress/ output
+          rm secrets.env      
+      - name: Store test artifacts
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: test-artifacts
+          path: output
