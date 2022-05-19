@@ -57,8 +57,12 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up tests herokuish and heroku buildpack
         run: |
+          herokuish_base_image="${{ inputs.herokuish_base_image }}"
+          if [ "$herokuish_base_image"x = 'x' ]
+          then herokuish_base_image="gliderlabs/herokuish"
+          fi
           cat <<EOF > Dockerfile
-          FROM ${{ inputs.herokuish_base_image }}
+          FROM $herokuish_base_image
           COPY . /tmp/app
           ENV BUILDPACK_URL=${{ inputs.BUILDPACK_URL }} \\
             USER=herokuishuser
