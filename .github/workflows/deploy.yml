@@ -86,11 +86,14 @@ jobs:
           type=raw,value={{sha}}
     - name: Create auto-deploy-app-values.yaml
       run: |
+        docker_tag="${{ steps.meta.outputs.tags }}"
+        repository=${docker_tag/:*/}
+        tag=${docker_tag/*:/}
         cat > auto-deploy-app-values.yaml <<EOF
         replicaCount: 1
         image:
-          repository: ${{ inputs.DOCKER_TAG }}
-          tag: ${{ steps.meta.outputs.tags }}
+          repository: $repository
+          tag: $tag
           pullPolicy: Always
         extraLabels:
           "ID": "${{ inputs.SERVICE_ID }}"
