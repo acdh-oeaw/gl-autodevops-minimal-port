@@ -35,6 +35,19 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create tags based on git data
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            ${{ inputs.registry_root }}${{ inputs.image_tagged }}/${{ github.ref_name }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value={{sha}}
       - name: Create secrets environment file for pack command
         env:
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
@@ -63,7 +76,5 @@ jobs:
             source_image=${{ inputs.source_image }}
           platforms: linux/amd64
           push: true
-          tags: |
-            ${{ inputs.registry_root }}${{ inputs.image_tagged }}/${{ github.ref_name }}:${{ github.sha }}
-            ${{ inputs.registry_root }}${{ inputs.image_tagged }}/${{ github.ref_name }}
-# acdhch/${{ inputs.image_tagged }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

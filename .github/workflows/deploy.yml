@@ -76,13 +76,21 @@ jobs:
         echo "KUBE_NAMESPACE=$KUBE_NAMESPACE" >> $GITHUB_ENV
         kubectl config set-context --current --namespace=$KUBE_NAMESPACE
         kubectl get pod
+    - name: Create tags based on git data
+      id: meta
+      uses: docker/metadata-action@v4
+      with:
+        images: |
+          ${{ inputs.DOCKER_TAG }}
+        tags: |
+          type=raw,value={{sha}}
     - name: Create auto-deploy-app-values.yaml
       run: |
         cat > auto-deploy-app-values.yaml <<EOF
         replicaCount: 1
         image:
           repository: ${{ inputs.DOCKER_TAG }}
-          tag: ${{ github.sha }}
+          tag: ${{ steps.meta.outputs.tags }}
           pullPolicy: Always
         extraLabels:
           "ID": "${{ inputs.SERVICE_ID }}"
