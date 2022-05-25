@@ -64,9 +64,9 @@ jobs:
               default_port
           ENV USER=herokuishuser
           # Fix me: this is broken ... does the action mount the right file?
-          RUN --mount=type=secret,id=secrets_env \
-              ls /run/secrets; \
-              . /run/secrets/secrets_env; \
+          RUN --mount=type=secret,id=secrets_env,dst=/secrets_env \
+              ls /secrets_env; \
+              . /secrets_env; \
               /bin/herokuish buildpack build
           
           FROM gliderlabs/herokuish
