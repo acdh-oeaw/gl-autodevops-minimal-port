@@ -64,7 +64,7 @@ jobs:
               default_port
           ENV USER=herokuishuser
           RUN --mount=type=secret,id=secrets_env \
-              source /run/secrets/secrets_env && \
+              . /run/secrets/secrets_env && \
               /bin/herokuish buildpack build
           
           FROM gliderlabs/herokuish
