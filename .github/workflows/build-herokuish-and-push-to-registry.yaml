@@ -58,7 +58,7 @@ jobs:
         run: |
           echo -n "$SECRETS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("K8S_SECRET_"))]|map("\(.key|sub("K8S_SECRET_"; ""))=\(.value|tostring|@sh)")|.[]' > secrets.env     
           cat > Dockerfile <<EOF
-          FROM gliderlabs/herokuish as builder
+          FROM alpine as builder
           COPY . /tmp/app
           ARG BUILDPACK_URL \
               default_port
@@ -76,7 +76,6 @@ jobs:
           EXPOSE \${default_port}
           CMD ["/bin/herokuish", "procfile", "start", "web"]
           EOF
-          -
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
       - name: Build and push
