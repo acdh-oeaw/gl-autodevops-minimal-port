@@ -80,10 +80,10 @@ jobs:
           context: .
           build-args: |
             default_port=${{ inputs.default_port }}
-            BUILDPACK_URL=${{ env.BUILDPACK_URL }}
+            BUILDPACK_URL=${{ inputs.BUILDPACK_URL }}
           platforms: linux/amd64
           push: true
           secret-files: |
-            secrets_env=secrets.env
+            "secrets_env=./secrets.env"
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
