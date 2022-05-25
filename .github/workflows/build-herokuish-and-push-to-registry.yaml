@@ -60,8 +60,7 @@ jobs:
           cat > Dockerfile <<EOF
           FROM gliderlabs/herokuish as builder
           COPY . /tmp/app
-          ARG BUILDPACK_URL \
-              default_port
+          ARG BUILDPACK_URL
           ENV USER=herokuishuser
           RUN --mount=type=secret,id=secrets_env,dst=/secrets_env \
               if [ -f /secrets_env ]; then . /secrets_env; fi; \
@@ -69,9 +68,9 @@ jobs:
           
           FROM gliderlabs/herokuish
           COPY --chown=herokuishuser:herokuishuser --from=builder /app /app
-          ENV PORT=\${default_port}
+          ENV PORT=${{ inputs.default_port }}
           ENV USER=herokuishuser
-          EXPOSE \${default_port}
+          EXPOSE ${{ inputs.default_port }}
           CMD ["/bin/herokuish", "procfile", "start", "web"]
           EOF
       - name: Set up Docker Buildx
@@ -81,7 +80,6 @@ jobs:
         with:
           context: .
           build-args: |
-            default_port=${{ inputs.default_port }}
             BUILDPACK_URL=${{ inputs.BUILDPACK_URL }}
           platforms: linux/amd64
           push: true
