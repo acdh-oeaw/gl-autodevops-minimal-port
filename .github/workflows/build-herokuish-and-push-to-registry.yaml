@@ -58,15 +58,13 @@ jobs:
         run: |
           echo -n "$SECRETS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("K8S_SECRET_"))]|map("\(.key|sub("K8S_SECRET_"; ""))=\(.value|tostring|@sh)")|.[]' > secrets.env     
           cat > Dockerfile <<EOF
-          FROM alpine as builder
+          FROM gliderlabs/herokuish as builder
           COPY . /tmp/app
           ARG BUILDPACK_URL \
               default_port
           ENV USER=herokuishuser
-          # Fix me: this is broken ... does the action mount the right file?
           RUN --mount=type=secret,id=secrets_env,dst=/secrets_env \
-              ls /secrets_env; \
-              . /secrets_env; \
+              if [ -f /secrets_env ]; then . /secrets_env; fi; \
               /bin/herokuish buildpack build
           
           FROM gliderlabs/herokuish
