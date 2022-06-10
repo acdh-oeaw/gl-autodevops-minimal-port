@@ -13,7 +13,11 @@ on:
         type: string
       default_port:
         required: true
-        type: string   
+        type: string
+      fetch-depth:
+        required: false
+        type: number
+        default: 0   
   workflow_dispatch: {}
   repository_dispatch:
     types: [run]
@@ -22,7 +26,9 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: ${{ inputs.fetch-depth }}
 # CNB are not multi-arch ready as of May 2022 so this is not needed
 # It causes problems with this workflow so test later
 #      - name: Set up QEMU
