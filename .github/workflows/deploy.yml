@@ -93,7 +93,7 @@ jobs:
         replicaCount: 1
         image:
           repository: $repository
-          tag: $tag
+          tag: "$tag"
           pullPolicy: Always
         extraLabels:
           "ID": "${{ inputs.SERVICE_ID }}"
