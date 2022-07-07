@@ -37,6 +37,10 @@ on:
         required: false
         type: string
         default: ''
+      default_port:
+        required: false
+        type: string
+        default: '5000'
     secrets:
       ACDH_KUBE_CONFIG:
         description: 'The kubctl config file to access the ACDH kubernetes'
@@ -107,8 +111,8 @@ jobs:
           additionalHosts:
             - ${{ inputs.APP_NAME }}-${{ github.ref_name }}.acdh-cluster.arz.oeaw.ac.at
           type: ClusterIP
-          externalPort: 5000
-          internalPort: 5000
+          externalPort: ${{ inputs.default_port }}
+          internalPort: ${{ inputs.default_port }}
         ingress:
           enabled: true
           path: "/"

@@ -39,6 +39,8 @@ jobs:
       SERVICE_ID: "18319"
       PUBLIC_URL: https://your service host name.acdh-cluster.arz.oeaw.ac.at or acdh-dev.oeaw.acat or acdh.oeaw.ac.at
       POSTGRES_ENABLED: "false"
+# You should not need to have to change anything below this line
+#-----------------------------------------------------------------------------------------------------
     steps:
       - run: "/bin/true"      
   _1:
@@ -81,6 +83,7 @@ jobs:
       PUBLIC_URL: ${{ needs.setup_workflow_env.outputs.PUBLIC_URL }}
       POSTGRES_ENABLED: ${{ needs.setup_workflow_env.outputs.POSTGRES_ENABLED == 'true'}}
       environment: "${{ needs.setup_workflow_env.outputs.environment}}"
+      default_port: "${{ needs.setup_workflow_env.outputs.default_port}}"
 ```
 
 You can pass many parameters as secrets like in gitlab. For example `KUBE_NAMESPACE` or `HELM_UPGRADE_EXTRA_ARGS`.
