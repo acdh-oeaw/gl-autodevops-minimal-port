@@ -1,4 +1,4 @@
-name: Deploy
+name: Deploy AKS
 on:
   workflow_call:  
     inputs:
@@ -58,7 +58,7 @@ on:
   repository_dispatch:
     types: [run]
 jobs:
-  deploy:
+  deploy-aks:
     runs-on: 'ubuntu-latest'
     environment: ${{ inputs.environment }}
     steps:
