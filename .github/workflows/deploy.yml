@@ -204,8 +204,13 @@ jobs:
       env:
         SECRETS_CONTEXT: ${{ toJson(secrets) }} 
       run: |
+        DATABASE_URL="${{ secrets.DATABASE_URL }}"
+        if [ -z $DATABASE_URL ]
+        then
+          DATABASE_URL=postgres://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@${{ env.POSTGRES_HOST }}:5432/${{ secrets.POSTGRES_DB }})
+        fi 
         helm upgrade ${{ inputs.APP_NAME }} \
           --values auto-deploy-app-values.yaml --install --atomic --wait \
-          --set application.database_url="${{ secrets.DATABASE_URL || "postgres://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@${{ env.POSTGRES_HOST }}:5432/${{ secrets.POSTGRES_DB }}" }}" \
+          --set application.database_url="$DATABASE_URL" \
           --set application.secretName="${{ inputs.APP_NAME }}-${{ github.ref_name }}" ${{ secrets.HELM_UPGRADE_EXTRA_ARGS }} \
           .github/auto-deploy-app
