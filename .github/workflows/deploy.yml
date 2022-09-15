@@ -53,7 +53,10 @@ on:
         required: false
       POSTGRES_PASSWORD: 
         description: 'Password name for the deployed PostgreSQL database'
-        required: false      
+        required: false
+      DATABASE_URL:
+        description: 'Database credentials in URL fromat'
+        required: false
   workflow_dispatch: {}
   repository_dispatch:
     types: [run]
@@ -203,6 +206,6 @@ jobs:
       run: |
         helm upgrade ${{ inputs.APP_NAME }} \
           --values auto-deploy-app-values.yaml --install --atomic --wait \
-          --set application.database_url="postgres://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@${{ env.POSTGRES_HOST }}:5432/${{ secrets.POSTGRES_DB }}" \
+          --set application.database_url="${{ secrets.DATABASE_URL || postgres://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@${{ env.POSTGRES_HOST }}:5432/${{ secrets.POSTGRES_DB }} }}" \
           --set application.secretName="${{ inputs.APP_NAME }}-${{ github.ref_name }}" ${{ secrets.HELM_UPGRADE_EXTRA_ARGS }} \
           .github/auto-deploy-app
