@@ -28,15 +28,15 @@ jobs:
 # It seems you have to specify the environment twice (passed to reusable workflow)
 # as there is no way yet to get the active environment
 #      environment: my environment
-      image_tagged: your image name
-      registry_root: ghcr.io/acdh-oeaw/
+      image_tagged: your-image-name
+      registry_root: ghcr.io/${{ github.repository }}/
       default_port: "5000"
       source_image: tmp-cnb-image
 #      herokuish_base_image: ghcr.io/acdh-oeaw/herokuish-for-cypress/main
-      APP_NAME: voice-fe
+      APP_NAME: your-app-name
 # This together with the branch name is also used as the namespace to deploy to
       APP_ROOT: "/"
-      SERVICE_ID: "18319"
+      SERVICE_ID: "99999999"
       PUBLIC_URL: https://your service host name.acdh-cluster.arz.oeaw.ac.at or acdh-dev.oeaw.acat or acdh.oeaw.ac.at
       POSTGRES_ENABLED: "false"
 # You should not need to have to change anything below this line
@@ -70,7 +70,8 @@ jobs:
     uses: acdh-oeaw/gl-autodevops-minimal-port/.github/workflows/deploy.yml@main
     secrets: inherit
 # if you run this outside of acdh-oeaw yo uneed to specify every secret you want to pass by name
-#      ACDH_KUBE_CONFIG: ${{ secrets.ACDH_KUBE_CONFIG }}
+#      KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+#      KUBE_INGRESS_BASE_DOMAIN: ${{ secrets.KUBE_INGRESS_BASE_DOMAIN }}
 #      POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
 #      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
 #      POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
