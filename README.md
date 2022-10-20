@@ -93,3 +93,10 @@ TODO
 ----
 
 Nothing right now
+
+Source of the auto-deploy-app
+-----------------------------
+
+The [auto-deploy-app](https://gitlab.com/gitlab-org/cluster-integration/auto-deploy-image/-/tree/master/assets/auto-deploy-app) helm chart is part of the [Gitlab cluster-integration auto-deploy-image repository](https://gitlab.com/gitlab-org/cluster-integration/auto-deploy-image)
+
+This helm chart should be updated onco in a while.

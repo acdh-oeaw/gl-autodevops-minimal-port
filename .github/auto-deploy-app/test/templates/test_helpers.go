@@ -74,6 +74,13 @@ type workerDeploymentTestCase struct {
 	ExpectedTolerations    []coreV1.Toleration
 	ExpectedInitContainers []coreV1.Container
 	ExpectedAffinity       *coreV1.Affinity
+	ExpectedResources      coreV1.ResourceRequirements
+}
+
+type cronjobTestCase struct {
+	ExpectedName     string
+	ExpectedCmd      []string
+	ExpectedSchedule string
 }
 
 type workerDeploymentSelectorTestCase struct {
@@ -105,7 +112,7 @@ func mergeStringMap(dst, src map[string]string) {
 
 func defaultLivenessProbe() *coreV1.Probe {
 	return &coreV1.Probe{
-		Handler: coreV1.Handler{
+		ProbeHandler: coreV1.ProbeHandler{
 			HTTPGet: &coreV1.HTTPGetAction{
 				Path:   "/",
 				Port:   intstr.FromInt(5000),
@@ -119,7 +126,7 @@ func defaultLivenessProbe() *coreV1.Probe {
 
 func defaultReadinessProbe() *coreV1.Probe {
 	return &coreV1.Probe{
-		Handler: coreV1.Handler{
+		ProbeHandler: coreV1.ProbeHandler{
 			HTTPGet: &coreV1.HTTPGetAction{
 				Path:   "/",
 				Port:   intstr.FromInt(5000),
@@ -133,7 +140,7 @@ func defaultReadinessProbe() *coreV1.Probe {
 
 func workerLivenessProbe() *coreV1.Probe {
 	return &coreV1.Probe{
-		Handler: coreV1.Handler{
+		ProbeHandler: coreV1.ProbeHandler{
 			HTTPGet: &coreV1.HTTPGetAction{
 				Path:   "/worker",
 				Port:   intstr.FromInt(5000),
@@ -147,11 +154,59 @@ func workerLivenessProbe() *coreV1.Probe {
 
 func workerReadinessProbe() *coreV1.Probe {
 	return &coreV1.Probe{
-		Handler: coreV1.Handler{
+		ProbeHandler: coreV1.ProbeHandler{
 			HTTPGet: &coreV1.HTTPGetAction{
 				Path:   "/worker",
 				Port:   intstr.FromInt(5000),
 				Scheme: coreV1.URISchemeHTTP,
+			},
+		},
+		InitialDelaySeconds: 0,
+		TimeoutSeconds:      0,
+	}
+}
+
+func execReadinessProbe() *coreV1.Probe {
+	return &coreV1.Probe{
+		ProbeHandler: coreV1.ProbeHandler{
+			Exec: &coreV1.ExecAction{
+				Command: []string{"echo", "hello"},
+			},
+		},
+		InitialDelaySeconds: 0,
+		TimeoutSeconds:      0,
+	}
+}
+
+func execLivenessProbe() *coreV1.Probe {
+	return &coreV1.Probe{
+		ProbeHandler: coreV1.ProbeHandler{
+			Exec: &coreV1.ExecAction{
+				Command: []string{"echo", "hello"},
+			},
+		},
+		InitialDelaySeconds: 0,
+		TimeoutSeconds:      0,
+	}
+}
+
+func tcpLivenessProbe() *coreV1.Probe {
+	return &coreV1.Probe{
+		ProbeHandler: coreV1.ProbeHandler{
+			TCPSocket: &coreV1.TCPSocketAction{
+				Port: intstr.IntOrString{IntVal: 5000},
+			},
+		},
+		InitialDelaySeconds: 0,
+		TimeoutSeconds:      0,
+	}
+}
+
+func tcpReadinessProbe() *coreV1.Probe {
+	return &coreV1.Probe{
+		ProbeHandler: coreV1.ProbeHandler{
+			TCPSocket: &coreV1.TCPSocketAction{
+				Port: intstr.IntOrString{IntVal: 5000},
 			},
 		},
 		InitialDelaySeconds: 0,

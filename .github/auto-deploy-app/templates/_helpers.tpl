@@ -34,6 +34,20 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
 {{- end -}}
 
 {{/*
+Templates for cronjob
+*/}}
+
+{{- define "cronjobimagename" -}}
+{{- if hasKey .job "image" -}}
+{{-   if and (hasKey .job.image "repository") (hasKey .job.image "tag") -}}
+{{- printf "%s:%s" .job.image.repository .job.image.tag -}}
+{{-   end -}}
+{{- else -}}
+{{- printf "%s:%s" .glob.image.repository .glob.image.tag -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
 Get a hostname from URL
 */}}
 {{- define "hostname" -}}
@@ -49,6 +63,13 @@ Get SecRule's arguments with unescaped single&double quotes
 {{- printf "SecRule %s %s %s" .variable $operator $action -}}
 {{- end -}}
 
+{{/*
+Generate a name for a Persistent Volume Claim
+*/}}
+{{- define "pvcName" -}}
+{{- printf "%s-%s" (include "fullname" .context) .name | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
 {{- define "sharedlabels" -}}
 app: {{ template "appname" . }}
 chart: "{{ .Chart.Name }}-{{ .Chart.Version| replace "+" "_" }}"
@@ -61,4 +82,11 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- if .Values.extraLabels }}
 {{ toYaml $.Values.extraLabels }}
 {{- end }}
+{{- end -}}
+
+{{- define "ingress.annotations" -}}
+{{- $defaults := include (print $.Template.BasePath "/_ingress-annotations.yaml") . | fromYaml -}}
+{{- $custom := .Values.ingress.annotations | default dict -}}
+{{- $merged := deepCopy $custom | mergeOverwrite $defaults -}}
+{{- $merged | toYaml -}}
 {{- end -}}

@@ -18,12 +18,24 @@ lifecycle: {}
 #     command: ["/bin/sh", "-c", "sleep 10"]
 podAnnotations: {}
 nodeSelector: {}
+dnsPolicy: {}
+dnsConfig: {}
+#    nameservers:
+#      - 8.8.8.8
+#    searches:
+#      - svc.cluster.local
+#      - cluster.local
+#    options:
+#      - name: ndots
+#        value: "1"
 affinity: {}
 tolerations: []
+priorityClassName:
 initContainers: []
 # - name: init-myservice
 #   image: busybox
 #   command: ['sh', '-c', 'until nslookup myservice; do echo waiting for myservice to start; sleep 1; done;']
+topologySpreadConstraints: []
 application:
   track: stable
   tier: web
@@ -31,6 +43,9 @@ application:
   initializeCommand:
   secretName:
   secretChecksum:
+  # You can omit `DATABASE_URL` variable injection into your deployment containers,
+  # if you explicitly set `database_url` to `null`.
+  # database_url: null
 hpa:
   enabled: false
   minReplicas: 1
@@ -66,6 +81,8 @@ service:
   commonName:
   externalPort: 5000
   internalPort: 5000
+  # nodePort: 30001
+  extraPorts: []
 ingress:
   enabled: true
   path: "/"
@@ -74,8 +91,7 @@ ingress:
     acme: true
     secretName: ""
     useDefaultSecret: false
-  annotations:
-    kubernetes.io/ingress.class: "nginx"
+  # className: nginx
   modSecurity:
     enabled: false
     secRuleEngine: "DetectionOnly"
@@ -93,12 +109,31 @@ livenessProbe:
   timeoutSeconds: 15
   scheme: "HTTP"
   probeType: "httpGet"
+  httpHeaders: []
 readinessProbe:
   path: "/"
   initialDelaySeconds: 5
   timeoutSeconds: 3
   scheme: "HTTP"
   probeType: "httpGet"
+  httpHeaders: []
+startupProbe:
+  enabled: false
+  path: "/"
+  initialDelaySeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 30
+  periodSeconds: 10
+  scheme: "HTTP"
+  probeType: "httpGet"
+  httpHeaders: []
+
+#hostAliases:
+#- ip: X.X.X.X
+#  hostnames:
+#  - dns1.DOMAIN1
+#  - dns2.DOMAIN2
+
 postgresql:
   managed: false
   managedClassSelector:
@@ -135,7 +170,7 @@ networkPolicy:
           matchLabels: {}
       - namespaceSelector:
           matchLabels:
-            app.gitlab.com/managed_by: github
+            app.gitlab.com/managed_by: gitlab
 
 ciliumNetworkPolicy:
   enabled: false
@@ -146,17 +181,56 @@ ciliumNetworkPolicy:
     ingress:
     - fromEndpoints:
       - matchLabels:
-          app.gitlab.com/managed_by: github
+          app.gitlab.com/managed_by: gitlab
 
 serviceAccount:
   name:
   annotations: {}
   createNew: false
 
+persistence:
+  enabled: false
+  volumes:
+    - name: data
+      mount:
+        path: "/pvc-mount"
+        # subPath: "/pvc-mount/config.txt"
+      claim:
+        accessMode: ReadWriteOnce
+        size: 8Gi
+        # If you want to use a custom storage class, you can specify `storageClass`. In this case, you need to create a storage class at first.
+        # If `storageClass` is not specified, the behavior will vary per Kubernetes provider.
+        # For example, GKE automatically chooses a default storage class and allocate a physical storage.
+        # See https://cloud.google.com/kubernetes-engine/docs/concepts/persistent-volumes for more information.
+        # storageClass: "myStorage"
+
+## Configure extra Volumes
+## ref: https://kubernetes.io/docs/concepts/storage/volumes/
+#
+extraVolumes: []
+# - name: config-volume
+#   configMap:
+#     name: test-config
+
+## Configure extra Volumes mounts
+## ref: https://kubernetes.io/docs/concepts/storage/volumes/
+#
+extraVolumeMounts: []
+# - name: config-volume
+#   mountPath: /app/config.yaml
+#   subPath: config.yaml
+
 workers: {}
   # worker:
   #   replicaCount: 1
   #   terminationGracePeriodSeconds: 60
+  #   hostAliases:
+  #   - ip: X.X.X.X
+  #     hostnames:
+  #     - dns1.DOMAIN1
+  #     - dns2.DOMAIN2
+  #   labels:
+  #     worker-type: worker
   #   command:
   #   - /bin/herokuish
   #   - procfile
@@ -171,12 +245,18 @@ workers: {}
   #     timeoutSeconds: 15
   #     scheme: "HTTP"
   #     probeType: "httpGet"
+  #     httpHeader:
+  #     - name: "custum-header"
+  #       value: "awesome"
   #   readinessProbe:
   #     path: "/"
   #     initialDelaySeconds: 5
   #     timeoutSeconds: 3
   #     scheme: "HTTP"
   #     probeType: "httpGet"
+  #     httpHeader:
+  #     - name: "custum-header"
+  #       value: "awesome"
   #   lifecycle:
   #     preStop:
   #       exec:
@@ -186,3 +266,35 @@ workers: {}
   #   - procfile
   #   - start
   #   - stop_worker
+  #   extraVolumes: []
+  #   extraVolumeMounts: []
+
+cronjobs: {}
+  # job:
+  #   schedule: "*/2 * * * *"
+  #   image:
+  #     repository: alpine
+  #     tag: latest
+  #   command: ["/bin/sh"]
+  #   args: ["-c", "echo hello"]
+  #   concurrencyPolicy: Forbid
+  #   failedJobsHistoryLimit: 1
+  #   restartPolicy: OnFailure
+  #   startingDeadlineSeconds: 300
+  #   successfulJobsHistoryLimit: 1
+  #   livenessProbe:
+  #     path: "/"
+  #     initialDelaySeconds: 15
+  #     timeoutSeconds: 15
+  #     scheme: "HTTP"
+  #     probeType: "httpGet"
+  #   readinessProbe:
+  #     path: "/"
+  #     initialDelaySeconds: 5
+  #     timeoutSeconds: 3
+  #     failureThreshold: 3
+  #     periodSeconds: 10
+  #     scheme: "HTTP"
+  #     probeType: "httpGet"
+  #   extraVolumes: []
+  #   extraVolumeMounts: []
