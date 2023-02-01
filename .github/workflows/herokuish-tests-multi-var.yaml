@@ -68,13 +68,15 @@ jobs:
             USER=herokuishuser
           EOF
       - name: Build and push
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v4
         with:
           context: .
           platforms: linux/amd64
           push: true
           tags: |
             ${{ inputs.registry_root }}${{ inputs.image_tagged }}/${{ github.ref_name }}:${{ github.sha }}-test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
       - name: Create test services network
         run: |
           docker network create --internal test-services 
