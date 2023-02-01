@@ -127,7 +127,7 @@ jobs:
           mkdir -p output
           docker cp test-run-step:/app/cypress/ output > /dev/null 2>&1 || /bin/true
           rm secrets.env
-          sudo chmod a+rX tmp          
+          sudo chmod -R a+rX tmp          
       - name: Save buildpack versions
         if: always()
         id: cache-buildpack-save
