@@ -19,7 +19,7 @@ on:
       herokuish_base_image:
         required: false
         type: string
-        default: gliderlabs/herokuish
+        default: gliderlabs/herokuish:latest-22
       BUILDPACK_URL:
         required: false
         type: string
@@ -59,7 +59,7 @@ jobs:
         run: |
           herokuish_base_image="${{ inputs.herokuish_base_image }}"
           if [ "$herokuish_base_image"x = 'x' ]
-          then herokuish_base_image="gliderlabs/herokuish"
+          then herokuish_base_image="gliderlabs/herokuish:latest-22"
           fi
           cat <<EOF > Dockerfile
           FROM $herokuish_base_image

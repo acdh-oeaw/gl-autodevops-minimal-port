@@ -11,6 +11,10 @@ on:
       source_image:
         required: true
         type: string
+      herokuish_base_image:
+        required: false
+        type: string
+        default: gliderlabs/herokuish:latest-22
       default_port:
         required: true
         type: string
@@ -60,9 +64,13 @@ jobs:
         env:
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
         run: |
-          echo -n "$SECRETS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("K8S_SECRET_"))]|map("\(.key|sub("K8S_SECRET_"; ""))=\(.value|tostring|@sh)")|.[]' > secrets.env     
+          echo -n "$SECRETS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("K8S_SECRET_"))]|map("\(.key|sub("K8S_SECRET_"; ""))=\(.value|tostring|@sh)")|.[]' > secrets.env
+          herokuish_base_image="${{ inputs.herokuish_base_image }}"
+          if [ "$herokuish_base_image"x = 'x' ]
+          then herokuish_base_image="gliderlabs/herokuish:latest-22"
+          fi          
           cat > Dockerfile <<EOF
-          FROM gliderlabs/herokuish as builder
+          FROM $herokuish_base_image
           COPY . /tmp/app
           ARG BUILDPACK_URL
           ENV USER=herokuishuser
@@ -71,7 +79,7 @@ jobs:
               if [ -f /secrets_env ]; then . /secrets_env; fi; \
               /bin/herokuish buildpack build
           
-          FROM gliderlabs/herokuish
+          FROM gliderlabs/herokuish:latest-22
           COPY --chown=herokuishuser:herokuishuser --from=builder /app /app
           ENV PORT=${{ inputs.default_port }}
           ENV USER=herokuishuser
