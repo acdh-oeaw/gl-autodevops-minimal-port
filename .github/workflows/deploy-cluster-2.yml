@@ -65,13 +65,17 @@ on:
     types: [run]
 jobs:
   deploy-cluster-2:
+# This workflow depends on the DOCKER_TAG passed pointing to the right container image
     runs-on: 'ubuntu-latest'
     environment: ${{ inputs.environment }}
     steps:
-# This step will not have access to the sources of the caller!
-# This depends on the DOCKER_TAG passed pointing to the right container image
+# This step will have access to the sources of the caller in a sub directory!
     - uses: actions/checkout@v3
       name: Checkout
+      with:
+        path: caller
+    - uses: actions/checkout@v3
+      name: Checkout gl-autodevops-minimal
       with:
         repository: ${{ github.repository_owner }}/gl-autodevops-minimal-port
     - name: Kubernetes credentials
