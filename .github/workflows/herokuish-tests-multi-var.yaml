@@ -106,7 +106,7 @@ jobs:
         with:
           path: |
             tmp/cache/cypress
-        key: ${{ runner.os }}-cypress
+          key: ${{ runner.os }}-cypress
       - name: Run tests using herokuish and heroku buildpack (DB credentials in multiple variables)    
         env:
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
@@ -129,6 +129,7 @@ jobs:
         with:
           path: |
             tmp/cache/cypress
+          key: ${{ steps.cache-cypress-restore.outputs.cache-cypress-key }}
       - name: Get test artifacts
         if: always()
         run: |
