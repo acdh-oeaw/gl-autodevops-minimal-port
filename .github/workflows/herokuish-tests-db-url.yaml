@@ -99,13 +99,13 @@ jobs:
            done
            EOF
            bash psql-test.sh
-      - name: Restore cached cypress versions
-        id: cache-cypress-restore
+      - name: Restore cached buildpack versions
+        id: cache-buildpack-restore
         uses: actions/cache/restore@v3
         with:
           path: |
-            tmp/cache/cypress
-          key: ${{ runner.os }}-cypress
+            tmp/cache
+          key: ${{ runner.os }}-buildpack-cache
       - name: Run tests using herokuish and heroku buildpack (DB credentials in DATABASE_URL)
         env:
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
@@ -116,18 +116,19 @@ jobs:
           docker create -t --name test-run-step \
             --env-file secrets.env \
             -e DATABASE_URL=postgres://${{ inputs.POSTGRES_USER }}:${{ inputs.PGPASSWORD }}@postgres:5432/${{ inputs.POSTGRES_DB }} \
-            -v $(pwd)/tmp/cache/cypress:/tmp/cache/cypress \
+            -v $(pwd)/tmp/cache:/tmp/cache \
             ${{ inputs.registry_root }}${{ inputs.image_tagged }}/${{ github.ref_name }}:${{ github.sha }}-test \
             /bin/herokuish buildpack test
           docker network connect test-services test-run-step
           docker start -i test-run-step
-      - name: Save cypress versions
-        id: cache-cypress-save
+      - name: Save buildpack versions
+        if: always()
+        id: cache-buildpack-save
         uses: actions/cache/save@v3
         with:
           path: |
-            tmp/cache/cypress
-          key: ${{ steps.cache-cypress-restore.outputs.cache-cypress-key }}
+            tmp/cache
+          key: ${{ steps.cache-buildpack-restore.outputs.cache-primary-key }}
       - name: Get test artifacts
         if: always()
         run: |
