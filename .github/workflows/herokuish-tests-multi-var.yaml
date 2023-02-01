@@ -100,14 +100,35 @@ jobs:
            done
            EOF
            bash psql-test.sh
+      - name: Restore cached cypress versions
+        id: cache-cypress-restore
+        uses: actions/cache/restore@v3
+        with:
+          path: |
+            tmp/cache/cypress
+        key: ${{ runner.os }}-cypress
       - name: Run tests using herokuish and heroku buildpack (DB credentials in multiple variables)    
         env:
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
         run: |
           echo -n "$SECRETS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("K8S_SECRET_"))]|map("\(.key|sub("K8S_SECRET_"; ""))=\(.value|tostring|@sh)")|.[]' > secrets.env
-          docker create -t --name test-run-step --env-file secrets.env -e POSTGRES_DB=${{ inputs.POSTGRES_DB }} -e POSTGRES_USER=${{ inputs.POSTGRES_USER }} -e POSTGRES_PASSWORD=${{ inputs.PGPASSWORD }} -e POSTGRES_HOST=postgres ${{ inputs.registry_root }}${{ inputs.image_tagged }}/${{ github.ref_name }}:${{ github.sha }}-test /bin/herokuish buildpack test
+          docker create -t --name test-run-step \
+            --env-file secrets.env \
+            -e POSTGRES_DB=${{ inputs.POSTGRES_DB }} \
+            -e POSTGRES_USER=${{ inputs.POSTGRES_USER }} \
+            -e POSTGRES_PASSWORD=${{ inputs.PGPASSWORD }} \
+            -e POSTGRES_HOST=postgres \
+            -v $(pwd)/tmp/cache/cypress:/tmp/cache/cypress \
+            ${{ inputs.registry_root }}${{ inputs.image_tagged }}/${{ github.ref_name }}:${{ github.sha }}-test \
+            /bin/herokuish buildpack test
           docker network connect test-services test-run-step
           docker start -i test-run-step
+      - name: Save cypress versions
+        id: cache-cypress-save
+        uses: actions/cache/save@v3
+        with:
+          path: |
+            tmp/cache/cypress
       - name: Get test artifacts
         if: always()
         run: |
