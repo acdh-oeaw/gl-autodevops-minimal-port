@@ -123,6 +123,13 @@ jobs:
             /bin/herokuish buildpack test
           docker network connect test-services test-run-step
           docker start -i test-run-step
+      - name: Get test artifacts and clean up
+        if: always()
+        run: |
+          mkdir -p output
+          docker cp test-run-step:/app/cypress/ output > /dev/null 2>&1 || /bin/true
+          rm secrets.env
+          sudo chmod a+rX tmp          
       - name: Save buildpack versions
         if: always()
         id: cache-buildpack-save
@@ -131,12 +138,6 @@ jobs:
           path: |
             tmp/cache
           key: ${{ steps.cache-buildpack-restore.outputs.cache-primary-key }}
-      - name: Get test artifacts
-        if: always()
-        run: |
-          mkdir -p output
-          docker cp test-run-step:/app/cypress/ output > /dev/null 2>&1 || /bin/true
-          rm secrets.env      
       - name: Store test artifacts
         uses: actions/upload-artifact@v3
         if: always()
