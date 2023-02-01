@@ -172,17 +172,6 @@ networkPolicy:
           matchLabels:
             app.gitlab.com/managed_by: gitlab
 
-ciliumNetworkPolicy:
-  enabled: false
-  alerts:
-    enabled: false
-  spec:
-    endpointSelector: {}
-    ingress:
-    - fromEndpoints:
-      - matchLabels:
-          app.gitlab.com/managed_by: gitlab
-
 serviceAccount:
   name:
   annotations: {}
@@ -219,6 +208,10 @@ extraVolumeMounts: []
 # - name: config-volume
 #   mountPath: /app/config.yaml
 #   subPath: config.yaml
+
+extraEnvFrom: []
+# - secretRef:
+#     name: {{ .Values.application.secretName }}
 
 workers: {}
   # worker:
@@ -268,6 +261,7 @@ workers: {}
   #   - stop_worker
   #   extraVolumes: []
   #   extraVolumeMounts: []
+  #   extraEnvFrom: []
 
 cronjobs: {}
   # job:
@@ -298,3 +292,4 @@ cronjobs: {}
   #     probeType: "httpGet"
   #   extraVolumes: []
   #   extraVolumeMounts: []
+  #   extraEnvFrom: []

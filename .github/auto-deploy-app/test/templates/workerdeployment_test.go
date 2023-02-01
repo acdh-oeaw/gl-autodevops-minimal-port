@@ -1021,12 +1021,12 @@ func TestWorkerTemplateWithVolumeMounts(t *testing.T) {
 				coreV1.VolumeMount{
 					Name:      "test-host-path",
 					MountPath: "/etc/ssl/certs/",
-					ReadOnly: true,
+					ReadOnly:  true,
 				},
 				coreV1.VolumeMount{
 					Name:      "secret-volume",
 					MountPath: "/etc/specialSecret",
-					ReadOnly: true,
+					ReadOnly:  true,
 				},
 			},
 		},
@@ -1065,7 +1065,7 @@ func TestWorkerTemplateWithVolumeMounts(t *testing.T) {
 						require.Equal(t, expectedVolume.Secret.SecretName, deployment.Spec.Template.Spec.Volumes[i].Secret.SecretName)
 					}
 				}
-	
+
 				for i, expectedVolumeMount := range tc.expectedVolumeMounts {
 					require.Equal(t, expectedVolumeMount.Name, deployment.Spec.Template.Spec.Containers[0].VolumeMounts[i].Name)
 					require.Equal(t, expectedVolumeMount.MountPath, deployment.Spec.Template.Spec.Containers[0].VolumeMounts[i].MountPath)
@@ -1138,6 +1138,84 @@ func TestWorkerDatabaseUrlEnvironmentVariable(t *testing.T) {
 				for _, envVar := range deployments.Items[0].Spec.Template.Spec.Containers[0].Env {
 					require.NotEqual(t, "DATABASE_URL", envVar.Name)
 				}
+			}
+		})
+	}
+}
+
+func TestWorkerDeploymentTemplateWithExtraEnvFrom(t *testing.T) {
+	releaseName := "worker-deployment-with-extra-envfrom-test"
+	templates := []string{"templates/worker-deployment.yaml"}
+
+	tcs := []struct {
+		name            string
+		values          map[string]string
+		expectedEnvFrom coreV1.EnvFromSource
+	}{
+		{
+			name: "with extra envfrom secret test",
+			values: map[string]string{
+				"workers.worker1.command[0]":                     "echo",
+				"workers.worker1.command[1]":                     "worker1",
+				"workers.worker1.extraEnvFrom[0].secretRef.name": "secret-name-test",
+			},
+			expectedEnvFrom: coreV1.EnvFromSource{
+				SecretRef: &coreV1.SecretEnvSource{
+					LocalObjectReference: coreV1.LocalObjectReference{
+						Name: "secret-name-test",
+					},
+				},
+			},
+		},
+		{
+			name: "with extra envfrom with secretName test",
+			values: map[string]string{
+				"workers.worker1.command[0]":                     "echo",
+				"workers.worker1.command[1]":                     "worker1",
+				"application.secretName":                         "gitlab-secretname-test",
+				"workers.worker1.extraEnvFrom[0].secretRef.name": "secret-name-test",
+			},
+			expectedEnvFrom: coreV1.EnvFromSource{
+				SecretRef: &coreV1.SecretEnvSource{
+					LocalObjectReference: coreV1.LocalObjectReference{
+						Name: "secret-name-test",
+					},
+				},
+			},
+		},
+		{
+			name: "with extra envfrom configmap test",
+			values: map[string]string{
+				"workers.worker1.command[0]":                        "echo",
+				"workers.worker1.command[1]":                        "worker1",
+				"workers.worker1.extraEnvFrom[0].configMapRef.name": "configmap-name-test",
+			},
+			expectedEnvFrom: coreV1.EnvFromSource{
+				ConfigMapRef: &coreV1.ConfigMapEnvSource{
+					LocalObjectReference: coreV1.LocalObjectReference{
+						Name: "configmap-name-test",
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			opts := &helm.Options{
+				SetValues: tc.values,
+			}
+			output, err := helm.RenderTemplateE(t, opts, helmChartPath, releaseName, templates)
+
+			if err != nil {
+				t.Error(err)
+				return
+			}
+
+			var deployments deploymentAppsV1List
+			helm.UnmarshalK8SYaml(t, output, &deployments)
+			for _, deployment := range deployments.Items {
+				require.Contains(t, deployment.Spec.Template.Spec.Containers[0].EnvFrom, tc.expectedEnvFrom)
 			}
 		})
 	}

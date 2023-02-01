@@ -89,6 +89,14 @@ items:
               envFrom:
               - secretRef:
                   name: {{ $.Values.application.secretName }}
+{{- if $jobConfig.extraEnvFrom }}
+{{ toYaml $jobConfig.extraEnvFrom | nindent 14 }}
+{{- end }}
+              {{- else }}
+              envFrom:
+{{- if $jobConfig.extraEnvFrom }}
+{{ toYaml $jobConfig.extraEnvFrom | nindent 14 }}
+{{- end }}
               {{- end }}
               env:
               {{- if $.Values.postgresql.managed }}

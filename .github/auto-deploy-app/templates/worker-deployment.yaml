@@ -103,6 +103,14 @@ items:
           envFrom:
           - secretRef:
               name: {{ $.Values.application.secretName }}
+{{- if $workerConfig.extraEnvFrom }}
+{{ toYaml $workerConfig.extraEnvFrom | indent 10 }}
+{{- end }}
+          {{- else }}
+          envFrom:
+{{- if $workerConfig.extraEnvFrom }}
+{{ toYaml $workerConfig.extraEnvFrom | indent 10 }}
+{{- end }}
           {{- end }}
           env:
 {{- if $.Values.application.database_url }}

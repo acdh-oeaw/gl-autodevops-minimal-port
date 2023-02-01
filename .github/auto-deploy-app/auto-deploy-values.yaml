@@ -1,0 +1,41 @@
+resources:
+  limits:
+    memory: 4096Mi
+service:
+  enabled: true
+  type: ClusterIP
+  externalPort: 8080
+  internalPort: 8080
+startupProbe:
+  enabled: true
+  path: "/"
+  initialDelaySeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 60
+  periodSeconds: 10
+  scheme: "HTTP"
+  probeType: "httpGet"
+  httpHeaders: []
+ingress:
+  enabled: true
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "750"
+cronjobs:
+  job:
+    schedule: "34 6,18 * * *"
+    image:
+      repository: curlimages/curl
+      tag: latest
+    command: ["/bin/sh"]
+    args: ["-c", "curl -k -s -L --location-trusted -u wboe-git-writer:${EXIST_user_wboe__git__writer_password} ${GITLAB_ENVIRONMENT_URL}/exist/apps/wboe-api/pull_gitlab_periodically.xql"]
+    concurrencyPolicy: Forbid
+    failedJobsHistoryLimit: 1
+    restartPolicy: OnFailure
+    startingDeadlineSeconds: 300
+    successfulJobsHistoryLimit: 1
+    livenessProbe:
+       probeType: "exec"
+       command: ["/bin/true"]
+    readinessProbe:
+       probeType: "exec"
+       command: ["/bin/true"]

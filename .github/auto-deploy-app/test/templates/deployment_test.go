@@ -969,12 +969,12 @@ func TestDeploymentTemplateWithVolumeMounts(t *testing.T) {
 				coreV1.VolumeMount{
 					Name:      "test-host-path",
 					MountPath: "/etc/ssl/certs/",
-					ReadOnly: true,
+					ReadOnly:  true,
 				},
 				coreV1.VolumeMount{
 					Name:      "secret-volume",
 					MountPath: "/etc/specialSecret",
-					ReadOnly: true,
+					ReadOnly:  true,
 				},
 			},
 		},
@@ -1117,6 +1117,76 @@ func TestDeploymentDatabaseUrlEnvironmentVariable(t *testing.T) {
 					require.NotEqual(t, "DATABASE_URL", envVar.Name)
 				}
 			}
+		})
+	}
+}
+
+func TestDeploymentTemplateWithExtraEnvFrom(t *testing.T) {
+	releaseName := "deployment-with-extra-envfrom-test"
+	templates := []string{"templates/deployment.yaml"}
+
+	tcs := []struct {
+		name            string
+		values          map[string]string
+		expectedEnvFrom coreV1.EnvFromSource
+	}{
+		{
+			name: "with extra envfrom secret test",
+			values: map[string]string{
+				"extraEnvFrom[0].secretRef.name": "secret-name-test",
+			},
+			expectedEnvFrom: coreV1.EnvFromSource{
+				SecretRef: &coreV1.SecretEnvSource{
+					LocalObjectReference: coreV1.LocalObjectReference{
+						Name: "secret-name-test",
+					},
+				},
+			},
+		},
+		{
+			name: "with extra envfrom with secretName test",
+			values: map[string]string{
+				"application.secretName":         "gitlab-secretname-test",
+				"extraEnvFrom[0].secretRef.name": "secret-name-test",
+			},
+			expectedEnvFrom: coreV1.EnvFromSource{
+				SecretRef: &coreV1.SecretEnvSource{
+					LocalObjectReference: coreV1.LocalObjectReference{
+						Name: "secret-name-test",
+					},
+				},
+			},
+		},
+		{
+			name: "with extra envfrom configmap test",
+			values: map[string]string{
+				"extraEnvFrom[0].configMapRef.name": "configmap-name-test",
+			},
+			expectedEnvFrom: coreV1.EnvFromSource{
+				ConfigMapRef: &coreV1.ConfigMapEnvSource{
+					LocalObjectReference: coreV1.LocalObjectReference{
+						Name: "configmap-name-test",
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			opts := &helm.Options{
+				SetValues: tc.values,
+			}
+			output, err := helm.RenderTemplateE(t, opts, helmChartPath, releaseName, templates)
+
+			if err != nil {
+				t.Error(err)
+				return
+			}
+
+			deployment := new(appsV1.Deployment)
+			helm.UnmarshalK8SYaml(t, output, deployment)
+			require.Contains(t, deployment.Spec.Template.Spec.Containers[0].EnvFrom, tc.expectedEnvFrom)
 		})
 	}
 }
