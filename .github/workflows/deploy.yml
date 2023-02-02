@@ -14,11 +14,9 @@ on:
       SERVICE_ID:
         required: false
         type: string
-        default: ${{ vars.SERVICE_ID }}
       PUBLIC_URL:
         required: false
         type: string
-        default: ${{ vars.PUBLIC_URL }}
       KUBE_NAMESPACE:
         required: false
         type: string
@@ -134,14 +132,14 @@ jobs:
           tag: "$tag"
           pullPolicy: Always
         extraLabels:
-          "ID": "${{ inputs.SERVICE_ID }}"
+          "ID": "${{ inputs.SERVICE_ID || vars.SERVICE_ID }}"
         github:
           app: ${{ inputs.APP_NAME }}
           envURL: ${{ github.repositoryUrl }}
         service:
           enabled: true
           name: ${{ inputs.APP_NAME }}
-          url: ${{ inputs.PUBLIC_URL }}
+          url: ${{ inputs.PUBLIC_URL || vars.PUBLIC_URL }}
           additionalHosts:
             - ${{ inputs.APP_NAME }}-${{ github.ref_name }}.${{ inputs.KUBE_INGRESS_BASE_DOMAIN || secrets.KUBE_INGRESS_BASE_DOMAIN}}
           type: ClusterIP
