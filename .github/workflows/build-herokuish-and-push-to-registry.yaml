@@ -25,13 +25,18 @@ on:
       BUILDPACK_URL:
         required: false
         type: string
-        default: ''  
+        default: ''
+      environment:
+        required: false
+        type: string
+        default: ''
   workflow_dispatch: {}
   repository_dispatch:
     types: [run]
 jobs:
   build_and_push_to_registry:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
+    environment: ${{ inputs.environment }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3

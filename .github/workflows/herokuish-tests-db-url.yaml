@@ -39,12 +39,17 @@ on:
         required: false
         type: string
         default: "true"
+      environment:
+        required: false
+        type: string
+        default: ''
   workflow_dispatch: {}
   repository_dispatch:
     types: [run]
 jobs:
   test:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
+    environment: ${{ inputs.environment }}
     steps:
       - name: checkout
         uses: actions/checkout@v3
