@@ -245,3 +245,9 @@ jobs:
           --set application.database_url="$DATABASE_URL" \
           --set application.secretName="${{ inputs.APP_NAME }}-${{ github.ref_name }}" ${{ secrets.HELM_UPGRADE_EXTRA_ARGS }} \
           .github/auto-deploy-app
+    - name: auto-deploy-app-values.yaml
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: auto-deploy-app-values-yaml
+        path: auto-deploy-app-values.yaml
