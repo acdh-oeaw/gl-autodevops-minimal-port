@@ -68,6 +68,9 @@ on:
       POSTGRES_PASSWORD: 
         description: 'Password name for the deployed PostgreSQL database'
         required: false
+      KUBE_NAMESPACE:
+        description: ''
+        required: false
   workflow_dispatch: {}
   repository_dispatch:
     types: [run]
