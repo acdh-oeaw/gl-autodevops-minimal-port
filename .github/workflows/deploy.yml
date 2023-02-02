@@ -20,15 +20,11 @@ on:
       KUBE_NAMESPACE:
         required: false
         type: string
-        default: ${{ secrets.KUBE_NAMESPACE || vars.KUBE_NAMESPACE }}
+        default: ${{ vars.KUBE_NAMESPACE }}
       KUBE_INGRESS_BASE_DOMAIN:
         description: 'The ingress domain associated with the cluster the credentials are for'
         required: false
-        default: ${{ secrets.KUBE_INGRESS_BASE_DOMAIN || vars.KUBE_INGRESS_BASE_DOMAIN }}
-      DATABASE_URL:
-        description: 'Database credentials in URL fromat'
-        required: false
-        default: ${{ secrets.DATABASE_URL }}
+        default: ${{ vars.KUBE_INGRESS_BASE_DOMAIN }}
       POSTGRES_ENABLED:
         required: false
         type: boolean
@@ -44,11 +40,11 @@ on:
       POSTGRES_USER:
         description: 'User for the deployed PostgreSQL database'
         required: false
-        default: ${{ secrets.POSTGRES_USER || vars.POSTGRES_USER }}
+        default: ${{ vars.POSTGRES_USER }}
       POSTGRES_DB: 
         description: 'Database name for the deployed PostgreSQL database'
         required: false
-        default: ${{ secrets.POSTGRES_DB || vars.POSTGRES_DB }}
+        default: ${{ vars.POSTGRES_DB }}
       POSTGRES_SIZE:
         required: false
         type: string
@@ -65,11 +61,23 @@ on:
       KUBE_CONFIG:
         description: 'The kubctl config file with credentials to access the your kubernetes'
         required: true
+      KUBE_NAMESPACE:
+        description: 'Namespace to deploy in (deprecated, use environment variable, not secret)'
+        required: false
+      KUBE_INGRESS_BASE_DOMAIN:
+        description: 'The ingress domain associated with the cluster the credentials are for (deprecated, use environment variable, not secret)'
+        required: false
+      DATABASE_URL:
+        description: 'Database credentials in URL fromat'
+        required: false
+      POSTGRES_USER:
+        description: 'User for the deployed PostgreSQL database (deprecated, use environment variable, not secret)'
+        required: false
+      POSTGRES_DB: 
+        description: 'Database name for the deployed PostgreSQL database (deprecated, use environment variable, not secret)'
+        required: false
       POSTGRES_PASSWORD: 
         description: 'Password name for the deployed PostgreSQL database'
-        required: false
-      KUBE_NAMESPACE:
-        description: ''
         required: false
   workflow_dispatch: {}
   repository_dispatch:
@@ -94,7 +102,7 @@ jobs:
         mkdir ${HOME}/.kube
         echo ${{ secrets.KUBE_CONFIG }} | base64 --decode > ${HOME}/.kube/config
         chmod 0600 ${HOME}/.kube/config
-        KUBE_NAMESPACE="${{ inputs.KUBE_NAMESPACE }}"
+        KUBE_NAMESPACE="${{ secrets.KUBE_NAMESPACE || inputs.KUBE_NAMESPACE }}"
         if [ "$KUBE_NAMESPACE"x == 'x' ]
         then KUBE_NAMESPACE="${{ inputs.APP_NAME }}-${{ github.ref_name }}"
         fi
