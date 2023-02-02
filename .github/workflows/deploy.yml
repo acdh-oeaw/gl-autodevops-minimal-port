@@ -12,11 +12,13 @@ on:
         required: true
         type: string
       SERVICE_ID:
-        required: true
+        required: false
         type: string
+        default: ${{ vars.SERVICE_ID }}
       PUBLIC_URL:
-        required: true
+        required: false
         type: string
+        default: ${{ vars.PUBLIC_URL }}
       KUBE_NAMESPACE:
         required: false
         type: string
