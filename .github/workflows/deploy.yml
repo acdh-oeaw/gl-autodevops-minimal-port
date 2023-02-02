@@ -22,6 +22,7 @@ on:
         type: string
         default: ${{ vars.KUBE_NAMESPACE }}
       KUBE_INGRESS_BASE_DOMAIN:
+        type: string
         description: 'The ingress domain associated with the cluster the credentials are for'
         required: false
         default: ${{ vars.KUBE_INGRESS_BASE_DOMAIN }}
@@ -32,16 +33,18 @@ on:
       POSTGRES_VERSION:
         required: false
         type: string
-        default: ${{ vars.POSTGRES_VERSION || 9.6.16 }}
+        default: ${{ vars.POSTGRES_VERSION || '9.6.16' }}
       POSTGRES_HOST:
         required: false
         type: string
         default: ${{ vars.POSTGRES_DB }}
       POSTGRES_USER:
+        type: string
         description: 'User for the deployed PostgreSQL database'
         required: false
         default: ${{ vars.POSTGRES_USER }}
-      POSTGRES_DB: 
+      POSTGRES_DB:
+        type: string
         description: 'Database name for the deployed PostgreSQL database'
         required: false
         default: ${{ vars.POSTGRES_DB }}
