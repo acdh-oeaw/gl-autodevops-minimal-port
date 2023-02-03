@@ -70,7 +70,8 @@ jobs:
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
         run: |
           echo -n "$SECRETS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("K8S_SECRET_"))]|map("\(.key|sub("K8S_SECRET_"; ""))=\(.value|tostring|@sh)")|.[]' > secrets.env
-          pack build ${{ inputs.registry_root }}${{ inputs.image_tagged || inputs.image_name }}-source --env-file secrets.env --builder heroku/buildpacks:22 --cache-image ${{ inputs.registry_root }}${{ inputs.image_tagged || inputs.image_name }}-cache --publish          
+          pack build ${{ inputs.registry_root }}${{ inputs.image_tagged || inputs.image_name }}/source --env-file secrets.env --builder heroku/builder:22 \
+            --cache-image ${{ inputs.registry_root }}${{ inputs.image_tagged || inputs.image_name }}/source:cache --publish          
           rm secrets.env
           cat > Dockerfile <<EOF
           ARG source_image
@@ -85,7 +86,7 @@ jobs:
           context: .
           build-args: |
             default_port=${{ inputs.default_port }}
-            source_image=${{ inputs.registry_root }}${{ inputs.image_tagged || inputs.image_name }}-source
+            source_image=${{ inputs.registry_root }}${{ inputs.image_tagged || inputs.image_name }}/source
           platforms: linux/amd64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
