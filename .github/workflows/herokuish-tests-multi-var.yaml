@@ -131,7 +131,6 @@ jobs:
             -e POSTGRES_HOST=postgres \
             -v $(pwd)/tmp/cache:/tmp/cache \
             ${{ inputs.registry_root }}tests/${{ inputs.image_tagged || inputs.image_name }}:${{ github.sha }} \
-            -v $(pwd)/tmp/cache:/tmp/cache \
             /bin/herokuish buildpack test
           docker network connect test-services test-run-step
           docker start -i test-run-step
