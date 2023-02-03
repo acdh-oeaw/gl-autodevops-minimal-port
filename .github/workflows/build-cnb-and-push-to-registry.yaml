@@ -6,10 +6,14 @@ on:
         required: true
         type: string
       image_tagged:
-        required: true
+        required: false
+        type: string
+        description: Deprecated, use image_name
+      image_name:
+        required: false
         type: string
       source_image:
-        required: true
+        required: false
         type: string
       default_port:
         required: true
@@ -46,7 +50,7 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: |
-            ${{ inputs.registry_root }}${{ inputs.image_tagged }}/${{ github.ref_name }}
+            ${{ inputs.registry_root }}${{ inputs.image_tagged || inputs.image_name }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -59,10 +63,10 @@ jobs:
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
         run: |
           echo -n "$SECRETS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("K8S_SECRET_"))]|map("\(.key|sub("K8S_SECRET_"; ""))=\(.value|tostring|@sh)")|.[]' > secrets.env
-      - name: Build using heroku/buildpacks:20 CNB
+      - name: Build using heroku/buildpacks:22 CNB
         uses: dfreilich/pack-action@v2.1.1
         with:
-          args: 'build ${{ inputs.source_image }} --env-file secrets.env --builder heroku/buildpacks:20'
+          args: 'build ${{ inputs.registry_root }}${{ inputs.image_tagged || inputs.image_name }}-source --env-file secrets.env --builder heroku/buildpacks:22 --cache-image ${{ inputs.registry_root }}${{ inputs.image_tagged || inputs.image_name }}-cache --publish'
       - name: Add default port to image
         run: |          
           rm secrets.env
@@ -79,7 +83,7 @@ jobs:
           context: .
           build-args: |
             default_port=${{ inputs.default_port }}
-            source_image=${{ inputs.source_image }}
+            source_image=${{ inputs.registry_root }}${{ inputs.image_tagged || inputs.image_name }}-source
           platforms: linux/amd64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
