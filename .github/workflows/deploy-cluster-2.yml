@@ -133,7 +133,7 @@ jobs:
           name: ${{ inputs.APP_NAME }}
           url: ${{ inputs.PUBLIC_URL || vars.PUBLIC_URL }}
           additionalHosts:
-            - ${{ inputs.APP_NAME }}-${{ github.ref_name }}.${{ inputs.C2_KUBE_INGRESS_BASE_DOMAIN || secrets.C2_KUBE_INGRESS_BASE_DOMAIN || vars.KUBE_INGRESS_BASE_DOMAIN || vars.C2_KUBE_INGRESS_BASE_DOMAIN }}
+            - ${{ inputs.APP_NAME }}-${{ github.ref_name }}.${{ inputs.C2_KUBE_INGRESS_BASE_DOMAIN || secrets.C2_KUBE_INGRESS_BASE_DOMAIN || vars.C2_KUBE_INGRESS_BASE_DOMAIN || vars.KUBE_INGRESS_BASE_DOMAIN }}
           type: ClusterIP
           externalPort: ${{ inputs.default_port }}
           internalPort: ${{ inputs.default_port }}
