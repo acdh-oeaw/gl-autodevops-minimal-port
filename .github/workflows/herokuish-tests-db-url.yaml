@@ -7,7 +7,11 @@ on:
         required: true
         type: string
       image_tagged:
-        required: true
+        required: false
+        type: string
+        description: Deprecated, use image_name
+      image_name:
+        required: false
         type: string
       source_image:
         required: true
@@ -80,7 +84,7 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: |
-            ${{ inputs.registry_root }}${{ inputs.image_tagged }}/${{ github.ref_name }}:${{ github.sha }}-test
+            ${{ inputs.registry_root }}/tests/${{ inputs.image_tagged || inputs.image_name }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Create test services network
@@ -122,7 +126,8 @@ jobs:
             --env-file secrets.env \
             -e DATABASE_URL=postgres://${{ inputs.POSTGRES_USER }}:${{ inputs.PGPASSWORD }}@postgres:5432/${{ inputs.POSTGRES_DB }} \
             -v $(pwd)/tmp/cache:/tmp/cache \
-            ${{ inputs.registry_root }}${{ inputs.image_tagged }}/${{ github.ref_name }}:${{ github.sha }}-test \
+            ${{ inputs.registry_root }}/tests/${{ inputs.image_tagged || inputs.image_name }}:${{ github.sha }} \
+            -v $(pwd)/tmp/cache:/tmp/cache \
             /bin/herokuish buildpack test
           docker network connect test-services test-run-step
           docker start -i test-run-step

@@ -6,7 +6,11 @@ on:
         required: true
         type: string
       image_tagged:
-        required: true
+        required: false
+        type: string
+        description: Deprecated, use image_name
+      image_name:
+        required: false
         type: string
       source_image:
         required: true
@@ -57,7 +61,7 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: |
-            ${{ inputs.registry_root }}${{ inputs.image_tagged }}/${{ github.ref_name }}
+            ${{ inputs.registry_root }}${{ inputs.image_tagged || inputs.image_name }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
