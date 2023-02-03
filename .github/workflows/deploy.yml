@@ -27,29 +27,23 @@ on:
       POSTGRES_ENABLED:
         required: false
         type: boolean
-        default: ${{ vars.POSTGRES_ENABLED || false }}
       POSTGRES_VERSION:
         required: false
         type: string
-        default: ${{ vars.POSTGRES_VERSION || '9.6.16' }}
       POSTGRES_HOST:
         required: false
         type: string
-        default: ${{ vars.POSTGRES_DB }}
       POSTGRES_USER:
         type: string
         description: 'User for the deployed PostgreSQL database'
         required: false
-        default: ${{ vars.POSTGRES_USER }}
       POSTGRES_DB:
         type: string
         description: 'Database name for the deployed PostgreSQL database'
         required: false
-        default: ${{ vars.POSTGRES_DB }}
       POSTGRES_SIZE:
         required: false
         type: string
-        default: ${{ vars.POSTGRES_SIZE || '1Gi' }}
       environment:
         required: false
         type: string
@@ -166,33 +160,33 @@ jobs:
           scheme: "HTTP"
           probeType: "httpGet"
         EOF
-    - if: inputs.POSTGRES_ENABLED
+    - if: inputs.POSTGRES_ENABLED || vars.POSTGRES_ENABLED || false
       name: Deploy PostgreSQL
       run: |
         helm repo add bitnami https://charts.bitnami.com/bitnami
         helm upgrade --install --atomic --wait --version 8.2.1 \
           --set fullnameOverride="${{ inputs.APP_NAME }}-postgres" \
-          --set postgresqlUsername="${{ inputs.POSTGRES_USER || secrets.POSTGRES_USER }}" \
+          --set postgresqlUsername="${{ inputs.POSTGRES_USER || secrets.POSTGRES_USER || vars.POSTGRES_USER }}" \
           --set postgresqlPassword="${{ secrets.POSTGRES_PASSWORD }}" \
           --set postgresqlDatabase="${{ inputs.POSTGRES_DB || secrets.POSTGRES_DB }}" \
-          --set image.tag="${{ inputs.POSTGRES_VERSION }}" \
-          --set persistence.size="${{ inputs.POSTGRES_SIZE }}" \
+          --set image.tag="${{ inputs.POSTGRES_VERSION || vars.POSTGRES_VERSION || '9.6.16' }}" \
+          --set persistence.size="${{ inputs.POSTGRES_SIZE ||  vars.POSTGRES_SIZE || '1Gi' }}" \
           --namespace="${{ env.KUBE_NAMESPACE }}" \
           "${{ inputs.APP_NAME }}-postgres" \
           bitnami/postgresql
         echo "POSTGRES_HOST=${{ inputs.APP_NAME }}-postgres" >> $GITHUB_ENV
-    - if: inputs.POSTGRES_HOST != ''
+    - if: inputs.POSTGRES_HOST != '' || vars.POSTGRES_DB != ''
       name: Set PostgreSQL server
       run: |
-        echo "POSTGRES_HOST=${{ inputs.POSTGRES_HOST }}" >> $GITHUB_ENV
+        echo "POSTGRES_HOST=${{ inputs.POSTGRES_HOST || vars.POSTGRES_HOST }}" >> $GITHUB_ENV
     - if: env.POSTGRES_HOST != ''
       name: Set Database credentials as environment variables
       env:
         SECRETS_CONTEXT: ${{ toJson(secrets) }}
       run: |      
-        POSTGRES_USER=$(echo -n '${{ inputs.POSTGRES_USER || secrets.POSTGRES_USER }}' | base64 -w0)
+        POSTGRES_USER=$(echo -n '${{ inputs.POSTGRES_USER || secrets.POSTGRES_USER || vars.POSTGRES_USER }}' | base64 -w0)
         POSTGRES_PASSWORD=$(echo -n '${{ secrets.POSTGRES_PASSWORD }}' | base64 -w0)
-        POSTGRES_DB=$(echo -n '${{ inputs.POSTGRES_DB || secrets.POSTGRES_DB }}' | base64 -w0)
+        POSTGRES_DB=$(echo -n '${{ inputs.POSTGRES_DB || secrets.POSTGRES_DB || vars.POSTGRES_DB  }}' | base64 -w0)
         POSTGRES_HOST=$(echo -n "$POSTGRES_HOST" | base64 -w0)
         cat > secrets.yaml <<EOF
         apiVersion: v1
@@ -236,7 +230,7 @@ jobs:
         DATABASE_URL="${{ secrets.DATABASE_URL }}"
         if [ -z $DATABASE_URL ]
         then
-          DATABASE_URL="postgres://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@${{ env.POSTGRES_HOST }}:5432/${{ secrets.POSTGRES_DB }}"
+          DATABASE_URL="postgres://${{ secrets.POSTGRES_USER || vars.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@${{ env.POSTGRES_HOST }}:5432/${{ secrets.POSTGRES_DB || vars.POSTGRES_DB }}"
         fi 
         helm upgrade ${{ inputs.APP_NAME }} \
           --values auto-deploy-app-values.yaml --install --atomic --wait \
