@@ -34,10 +34,11 @@ jobs:
       image_name: your-image-name
       registry_root: ghcr.io/${{ github.repository }}/
       default_port: "5000"
+      submodules: "true"
 #      herokuish_base_image: ghcr.io/acdh-oeaw/herokuish-for-cypress/main:latest-22
       APP_NAME: your-app-name
 # This together with the branch name is also used as the namespace to deploy to
-      APP_ROOT: "/"
+      APP_ROOT: "/"     
       # SERVICE_ID: "99999" # Better use GtiHub environment variables for this
       # PUBLIC_URL: "https://some-stuff.acdh-ch-dev.oeaw.ac.at" # Better use GitHub environment variables for this
       # POSTGRES_ENABLED: "false" # needs to be set to true to enable a postgres db installed next to the deployed app
@@ -66,6 +67,7 @@ jobs:
       image_name: ${{ needs.setup_workflow_env.outputs.image_name }}
       source_image: ${{ needs.setup_workflow_env.outputs.source_image }}
       default_port: ${{ needs.setup_workflow_env.outputs.default_port }}
+      submodules: ${{ needs.setup_workflow_env.outputs.submodules }}
   _2:
     needs: [setup_workflow_env]
     uses: acdh-oeaw/gl-autodevops-minimal-port/.github/workflows/herokuish-tests-db-url.yaml@main
@@ -79,6 +81,7 @@ jobs:
       default_port: ${{ needs.setup_workflow_env.outputs.default_port }}
       herokuish_base_image: ${{ needs.setup_workflow_env.outputs.herokuish_base_image }}
       POSTGRES_ENABLED: ${{ needs.setup_workflow_env.outputs.POSTGRES_ENABLED }}
+      submodules: ${{ needs.setup_workflow_env.outputs.submodules }}
   _3:
     needs: [setup_workflow_env, _1, _2]
     uses: acdh-oeaw/gl-autodevops-minimal-port/.github/workflows/deploy-cluster-2.yml@main
@@ -99,6 +102,7 @@ jobs:
       PUBLIC_URL: ${{ needs.setup_workflow_env.outputs.PUBLIC_URL }}
       POSTGRES_ENABLED: ${{ needs.setup_workflow_env.outputs.POSTGRES_ENABLED == 'true'}}
       default_port: "${{ needs.setup_workflow_env.outputs.default_port}}"
+      submodules: ${{ needs.setup_workflow_env.outputs.submodules }}
 ```
 
 You can pass many parameters variables like in gitlab or use GitHub's special read protected write only secrets.

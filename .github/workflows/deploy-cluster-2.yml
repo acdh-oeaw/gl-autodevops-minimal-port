@@ -52,6 +52,10 @@ on:
         required: false
         type: string
         default: '5000'
+      submodules:
+        required: false
+        type: string
+        default: 'false'
     secrets:
       C2_KUBE_CONFIG:
         description: 'The kubctl config file with credentials to access the your kubernetes'
@@ -88,6 +92,7 @@ jobs:
       name: Checkout
       with:
         path: caller
+        submodules: ${{ inputs.submodules }}
     - uses: actions/checkout@v3
       name: Checkout gl-autodevops-minimal
       with:
