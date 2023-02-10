@@ -91,7 +91,7 @@ jobs:
     - uses: actions/checkout@v3
       name: Checkout
       with:
-        path: caller
+        path: ../caller
         submodules: ${{ inputs.submodules }}
     - uses: actions/checkout@v3
       name: Checkout gl-autodevops-minimal
@@ -121,7 +121,7 @@ jobs:
       run: |
         pwd
         ls
-        ls caller || true
+        ls ../caller || true
         ls ../caller/.github || true
         ls ../caller/.gitlab || true
         if [ -f caller/.github/auto-deploy-values.yaml ]
