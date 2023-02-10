@@ -87,16 +87,16 @@ jobs:
     runs-on: 'ubuntu-latest'
     environment: ${{ inputs.environment }}
     steps:
-# This step will have access to the sources of the caller in a sub directory!
-    - uses: actions/checkout@v3
-      name: Checkout
-      with:
-        path: ../caller
-        submodules: ${{ inputs.submodules }}
     - uses: actions/checkout@v3
       name: Checkout gl-autodevops-minimal
       with:
         repository: ${{ github.repository_owner }}/gl-autodevops-minimal-port
+# This step will have access to the sources of the caller in a sub directory!
+    - uses: actions/checkout@v3
+      name: Checkout
+      with:
+        path: caller
+        submodules: ${{ inputs.submodules }}
     - name: Kubernetes credentials
       run: |
         mkdir ${HOME}/.kube
@@ -121,9 +121,9 @@ jobs:
       run: |
         pwd
         ls
-        ls ../caller || true
-        ls ../caller/.github || true
-        ls ../caller/.gitlab || true
+        ls caller || true
+        ls caller/.github || true
+        ls caller/.gitlab || true
         if [ -f caller/.github/auto-deploy-values.yaml ]
         then cp caller/.github/auto-deploy-values.yaml tmp-auto-deploy-values.yaml
         elif [ -f caller/.gitlab/auto-deploy-values.yaml ]
