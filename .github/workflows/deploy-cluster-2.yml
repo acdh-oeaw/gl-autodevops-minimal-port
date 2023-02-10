@@ -120,8 +120,10 @@ jobs:
     - name: Create auto-deploy-values.yaml
       run: |
         pwd
-        ls caller/.github || true
-        ls caller/.gitlab || true
+        ls
+        ls caller || true
+        ls ../caller/.github || true
+        ls ../caller/.gitlab || true
         if [ -f caller/.github/auto-deploy-values.yaml ]
         then cp caller/.github/auto-deploy-values.yaml tmp-auto-deploy-values.yaml
         elif [ -f caller/.gitlab/auto-deploy-values.yaml ]
