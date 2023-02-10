@@ -6,6 +6,7 @@ on:
         required: true
         type: string
       APP_NAME:
+        description: "The app name used in for helm. Should contain a reference to the environment for this deployment"
         required: true
         type: string
       APP_ROOT:
@@ -104,7 +105,7 @@ jobs:
         chmod 0600 ${HOME}/.kube/config
         KUBE_NAMESPACE="${{ inputs.KUBE_NAMESPACE || secrets.KUBE_NAMESPACE || vars.KUBE_NAMESPACE }}"
         if [ "$KUBE_NAMESPACE"x == 'x' ]
-        then KUBE_NAMESPACE="${{ inputs.APP_NAME }}-${{ github.ref_name }}"
+        then KUBE_NAMESPACE="${{ inputs.APP_NAME }}"
         fi
         echo "KUBE_NAMESPACE=$KUBE_NAMESPACE" >> $GITHUB_ENV
         kubectl config set-context --current --namespace=$KUBE_NAMESPACE
@@ -211,7 +212,7 @@ jobs:
         apiVersion: v1
         kind: Secret
         metadata:
-          name: ${{ inputs.APP_NAME }}-${{ github.ref_name }}
+          name: ${{ inputs.APP_NAME }}
         type: Opaque
         data:
           POSTGRES_USER: $POSTGRES_USER
@@ -230,7 +231,7 @@ jobs:
         apiVersion: v1
         kind: Secret
         metadata:
-          name: ${{ inputs.APP_NAME }}-${{ github.ref_name }}
+          name: ${{ inputs.APP_NAME }}
         type: Opaque
         data:
         EOF
@@ -258,7 +259,7 @@ jobs:
         helm upgrade ${{ inputs.APP_NAME }} \
           --values auto-deploy-values.yaml --install --atomic --wait \
           --set application.database_url="$DATABASE_URL" \
-          --set application.secretName="${{ inputs.APP_NAME }}-${{ github.ref_name }}" ${{ secrets.HELM_UPGRADE_EXTRA_ARGS }} \
+          --set application.secretName="${{ inputs.APP_NAME }}" ${{ secrets.HELM_UPGRADE_EXTRA_ARGS }} \
           .github/auto-deploy-app
     - name: auto-deploy-values.yaml
       uses: actions/upload-artifact@v3
