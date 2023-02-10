@@ -127,20 +127,20 @@ jobs:
         cat > tmp-auto-deploy-values.yaml <<EOF
         replicaCount: 1
         image:
-          repository: $repository
-          tag: "$tag"
+          repository: \$repository
+          tag "\$tag"
           pullPolicy: Always
         extraLabels:
-          "ID": "$service_id"
+          "ID" "\$service_id"
         gitlab:
-          app: "$app_name"
-          envURL: "$repo_url"
+          app "\$app_name"
+          envURL "\$repo_url"
         service:
           enabled: true
-          name: "$app_name"
-          url: "$public_url"
+          name "\$app_name"
+          url "\$public_url"
           additionalHosts:
-            - ${app_name_in_url}-${ref_name}.${kube_ingress_base_domain}
+            - \${app_name_in_url}-\${ref_name}.\${kube_ingress_base_domain}
           type: ClusterIP
           externalPort: ${{ inputs.default_port }}
           internalPort: ${{ inputs.default_port }}
