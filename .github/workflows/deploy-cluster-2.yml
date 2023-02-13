@@ -259,7 +259,7 @@ jobs:
         helm upgrade ${{ inputs.APP_NAME }} \
           --values auto-deploy-values.yaml --install --atomic --wait \
           --set application.database_url="$DATABASE_URL" \
-          --set application.secretName="${{ inputs.APP_NAME }}" ${{ secrets.HELM_UPGRADE_EXTRA_ARGS }} \
+          --set application.secretName="${{ inputs.APP_NAME }}" ${{ secrets.HELM_UPGRADE_EXTRA_ARGS || vars.HELM_UPGRADE_EXTRA_ARGS }} \
           .github/auto-deploy-app
     - name: auto-deploy-values.yaml
       uses: actions/upload-artifact@v3
