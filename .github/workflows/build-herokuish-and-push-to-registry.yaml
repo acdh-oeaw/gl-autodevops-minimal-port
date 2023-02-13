@@ -1,4 +1,4 @@
-name: Build CNB and push to registry
+name: Build with Herokuish and push to registry
 on:
   workflow_call:  
     inputs:
