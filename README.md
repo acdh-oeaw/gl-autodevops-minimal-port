@@ -60,7 +60,7 @@ jobs:
     needs: [setup_workflow_env]
     uses: acdh-oeaw/gl-autodevops-minimal-port/.github/workflows/build-cnb-and-push-to-registry.yaml@main
     secrets: inherit
-# if you run this outside of acdh-oeaw yo uneed to specify every secret you want to pass by name
+# if you run this outside of of an org that provides KUBE_CONFIG etc as a secret, you need to specify every secret you want to pass by name
     with:
       environment: ${{ needs.setup_workflow_env.outputs.environment }}
       registry_root: ${{ needs.setup_workflow_env.outputs.registry_root }}
