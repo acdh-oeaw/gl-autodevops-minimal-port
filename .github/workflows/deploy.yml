@@ -6,6 +6,7 @@ on:
         required: true
         type: string
       APP_NAME:
+        description: "The app name used in for helm. Should contain a reference to the environment for this deployment"
         required: true
         type: string
       APP_ROOT:
@@ -87,16 +88,16 @@ jobs:
     runs-on: 'ubuntu-latest'
     environment: ${{ inputs.environment }}
     steps:
+    - uses: actions/checkout@v3
+      name: Checkout gl-autodevops-minimal
+      with:
+        repository: ${{ github.repository_owner }}/gl-autodevops-minimal-port
 # This step will have access to the sources of the caller in a sub directory!
     - uses: actions/checkout@v3
       name: Checkout
       with:
         path: caller
         submodules: ${{ inputs.submodules }}
-    - uses: actions/checkout@v3
-      name: Checkout gl-autodevops-minimal
-      with:
-        repository: ${{ github.repository_owner }}/gl-autodevops-minimal-port
     - name: Kubernetes credentials
       run: |
         mkdir ${HOME}/.kube
@@ -104,7 +105,7 @@ jobs:
         chmod 0600 ${HOME}/.kube/config
         KUBE_NAMESPACE="${{ inputs.KUBE_NAMESPACE || secrets.KUBE_NAMESPACE || vars.KUBE_NAMESPACE }}"
         if [ "$KUBE_NAMESPACE"x == 'x' ]
-        then KUBE_NAMESPACE="${{ inputs.APP_NAME }}-${{ github.ref_name }}"
+        then KUBE_NAMESPACE="${{ inputs.APP_NAME }}"
         fi
         echo "KUBE_NAMESPACE=$KUBE_NAMESPACE" >> $GITHUB_ENV
         kubectl config set-context --current --namespace=$KUBE_NAMESPACE
@@ -117,28 +118,30 @@ jobs:
           ${{ inputs.DOCKER_TAG }}
         tags: |
           type=raw,value={{sha}}
-    - name: Create auto-deploy-app-values.yaml
+    - name: Create auto-deploy-values.yaml
       run: |
-        docker_tag="${{ steps.meta.outputs.tags }}"
-        repository=${docker_tag/:*/}
-        tag=${docker_tag/*:/}
-        cat > auto-deploy-app-values.yaml <<EOF
+        if [ -f caller/.github/auto-deploy-values.yaml ]
+        then cp caller/.github/auto-deploy-values.yaml tmp-auto-deploy-values.yaml
+        elif [ -f caller/.gitlab/auto-deploy-values.yaml ]
+        then cp caller/.gitlab/auto-deploy-values.yaml tmp-auto-deploy-values.yaml
+        else
+        cat > tmp-auto-deploy-values.yaml <<EOF
         replicaCount: 1
         image:
-          repository: $repository
-          tag: "$tag"
+          repository: \$repository
+          tag: "\$tag"
           pullPolicy: Always
         extraLabels:
-          "ID": "${{ inputs.SERVICE_ID || vars.SERVICE_ID }}"
-        github:
-          app: ${{ inputs.APP_NAME }}
-          envURL: ${{ github.repositoryUrl }}
+          "ID": "\$service_id"
+        gitlab:
+          app: "\$app_name"
+          envURL: "\$repo_url"
         service:
           enabled: true
-          name: ${{ inputs.APP_NAME }}
-          url: ${{ inputs.PUBLIC_URL || vars.PUBLIC_URL }}
+          name: "\$app_name"
+          url: "\$public_url"
           additionalHosts:
-            - ${{ inputs.APP_NAME }}-${{ github.ref_name }}.${{ inputs.KUBE_INGRESS_BASE_DOMAIN || secrets.KUBE_INGRESS_BASE_DOMAIN || vars.KUBE_INGRESS_BASE_DOMAIN }}
+            - \${app_name_in_url}-\${ref_name}.\${kube_ingress_base_domain}
           type: ClusterIP
           externalPort: ${{ inputs.default_port }}
           internalPort: ${{ inputs.default_port }}
@@ -149,9 +152,9 @@ jobs:
             kubernetes.io/ingress.class: "nginx"
         EOF
         if [ '${{ inputs.APP_ROOT }}x' != '/x' ]
-        then echo '    nginx.ingress.kubernetes.io/app-root: ${{ inputs.APP_ROOT }}' >> auto-deploy-app-values.yaml
+        then echo '    nginx.ingress.kubernetes.io/app-root: ${{ inputs.APP_ROOT }}' >> tmp-auto-deploy-values.yaml
         fi
-        cat >> auto-deploy-app-values.yaml <<EOF
+        cat >> tmp-auto-deploy-values.yaml <<EOF
         livenessProbe:
           path: "${{ inputs.APP_ROOT }}"
           initialDelaySeconds: 15
@@ -165,6 +168,18 @@ jobs:
           scheme: "HTTP"
           probeType: "httpGet"
         EOF
+        fi
+        repo_url="${{ github.repositoryUrl }}" \
+        ref_name="${{ github.ref_name }}" \
+        kube_ingress_base_domain="${{ inputs.KUBE_INGRESS_BASE_DOMAIN || secrets.KUBE_INGRESS_BASE_DOMAIN || vars.KUBE_INGRESS_BASE_DOMAIN }}" \
+        public_url="${{ inputs.PUBLIC_URL || vars.PUBLIC_URL }}" \
+        service_id="${{ inputs.SERVICE_ID || vars.SERVICE_ID }}" \
+        docker_tag="${{ steps.meta.outputs.tags }}" \
+        repository=${docker_tag/:*/} \
+        tag=${docker_tag/*:/} \
+        app_name="${{ inputs.APP_NAME }}" \
+        app_name_in_url=${app_name// /-} \
+        envsubst '$repo_url $ref_name $kube_ingress_base_domain $public_url $service_id $docker_tag $repository $tag $app_name $app_name_in_url' < tmp-auto-deploy-values.yaml > auto-deploy-values.yaml
     - if: inputs.POSTGRES_ENABLED || vars.POSTGRES_ENABLED || false
       name: Deploy PostgreSQL
       run: |
@@ -197,7 +212,7 @@ jobs:
         apiVersion: v1
         kind: Secret
         metadata:
-          name: ${{ inputs.APP_NAME }}-${{ github.ref_name }}
+          name: ${{ inputs.APP_NAME }}
         type: Opaque
         data:
           POSTGRES_USER: $POSTGRES_USER
@@ -216,7 +231,7 @@ jobs:
         apiVersion: v1
         kind: Secret
         metadata:
-          name: ${{ inputs.APP_NAME }}-${{ github.ref_name }}
+          name: ${{ inputs.APP_NAME }}
         type: Opaque
         data:
         EOF
@@ -242,13 +257,13 @@ jobs:
           DATABASE_URL="postgres://${{ secrets.POSTGRES_USER || vars.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@${{ env.POSTGRES_HOST }}:5432/${{ secrets.POSTGRES_DB || vars.POSTGRES_DB }}"
         fi 
         helm upgrade ${{ inputs.APP_NAME }} \
-          --values auto-deploy-app-values.yaml --install --atomic --wait \
+          --values auto-deploy-values.yaml --install --atomic --wait \
           --set application.database_url="$DATABASE_URL" \
-          --set application.secretName="${{ inputs.APP_NAME }}-${{ github.ref_name }}" ${{ secrets.HELM_UPGRADE_EXTRA_ARGS }} \
+          --set application.secretName="${{ inputs.APP_NAME }}" ${{ secrets.HELM_UPGRADE_EXTRA_ARGS || vars.HELM_UPGRADE_EXTRA_ARGS }} \
           .github/auto-deploy-app
-    - name: auto-deploy-app-values.yaml
+    - name: auto-deploy-values.yaml
       uses: actions/upload-artifact@v3
       if: always()
       with:
-        name: auto-deploy-app-values-yaml
-        path: auto-deploy-app-values.yaml
+        name: auto-deploy-values-yaml
+        path: auto-deploy-values.yaml
