@@ -251,6 +251,10 @@ jobs:
       env:
         SECRETS_CONTEXT: ${{ toJson(secrets) }} 
       run: |
+        if [ -f "caller/chart/Chart.yaml" ]
+        then chart="caller/chart"
+        else chart=".github/auto-deploy-app"
+        fi
         DATABASE_URL="${{ secrets.DATABASE_URL }}"
         if [ -z $DATABASE_URL ]
         then
@@ -260,7 +264,7 @@ jobs:
           --values auto-deploy-values.yaml --install --atomic --wait \
           --set application.database_url="$DATABASE_URL" \
           --set application.secretName="${{ inputs.APP_NAME }}" ${{ secrets.HELM_UPGRADE_EXTRA_ARGS || vars.HELM_UPGRADE_EXTRA_ARGS }} \
-          .github/auto-deploy-app
+        $chart  
     - name: auto-deploy-values.yaml
       uses: actions/upload-artifact@v3
       if: always()
