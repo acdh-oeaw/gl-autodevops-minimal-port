@@ -184,7 +184,7 @@ jobs:
       name: Deploy PostgreSQL
       run: |
         helm repo add bitnami https://charts.bitnami.com/bitnami
-        helm upgrade --install --atomic --wait --version 8.2.1 \
+        helm upgrade --install --atomic --wait --version 12.2.1 \
           --set fullnameOverride="${{ inputs.APP_NAME }}-postgres" \
           --set postgresqlUsername="${{ inputs.POSTGRES_USER || secrets.POSTGRES_USER || vars.POSTGRES_USER }}" \
           --set postgresqlPassword="${{ secrets.POSTGRES_PASSWORD }}" \
