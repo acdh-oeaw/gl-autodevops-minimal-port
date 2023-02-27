@@ -237,13 +237,11 @@ jobs:
         EOF
         k8s_secrets="$(echo -n "$SECRETS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("K8S_SECRET_"))]|map("  \(.key|sub("K8S_SECRET_"; "")): \(.value|tostring|@base64)")|.[]')"
         k8s_vars="$(echo -n "$VARS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("K8S_SECRET_"))]|map("  \(.key|sub("K8S_SECRET_"; "")): \(.value|tostring|@base64)")|.[]')"
-        if [ "$k8s_secrets$k8s_vars"x == 'x' ]
+        k8s_secrets_lc="$(echo -n "$SECRETS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("LC_K8S_SECRET_"))]|map("  \(.key|sub("LC_K8S_SECRET_"; "")|ascii_downcase): \(.value|tostring|@base64)")|.[]')"
+        k8s_vars_lc="$(echo -n "$VARS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("LC_K8S_SECRET_"))]|map("  \(.key|sub("LC_K8S_SECRET"; "")|ascii_downcase): \(.value|tostring|@base64)")|.[]')"
+        if [ "$k8s_secrets$k8s_vars$k8s_secrets_lc$k8s_vars_lc"x == 'x' ]
         then echo ' {}' >> secrets.yaml
-        elif [ "$k8s_secrets"x == 'x' ]
-        then echo "$k8s_vars" >> secrets.yaml
-        elif [ "$k8s_vars"x == 'x' ]
-        then echo "$k8s_secrets" >> secrets.yaml
-        else printf "$k8s_secrets\n$k8s_vars" >> secrets.yaml
+        else printf "$k8s_secrets\n$k8s_vars\n$k8s_secrets_lc\n$k8s_vars_lc" >> secrets.yaml
         fi
         kubectl replace -f secrets.yaml -n "${{ env.KUBE_NAMESPACE }}" --force
         rm secrets.yaml
