@@ -199,30 +199,7 @@ jobs:
       name: Set PostgreSQL server
       run: |
         echo "POSTGRES_HOST=${{ inputs.POSTGRES_HOST || vars.POSTGRES_HOST }}" >> $GITHUB_ENV
-    - if: env.POSTGRES_HOST != ''
-      name: Set Database credentials as environment variables
-      env:
-        SECRETS_CONTEXT: ${{ toJson(secrets) }}
-      run: |      
-        POSTGRES_USER=$(echo -n '${{ inputs.POSTGRES_USER || secrets.POSTGRES_USER || vars.POSTGRES_USER }}' | base64 -w0)
-        POSTGRES_PASSWORD=$(echo -n '${{ secrets.POSTGRES_PASSWORD }}' | base64 -w0)
-        POSTGRES_DB=$(echo -n '${{ inputs.POSTGRES_DB || secrets.POSTGRES_DB || vars.POSTGRES_DB  }}' | base64 -w0)
-        POSTGRES_HOST=$(echo -n "$POSTGRES_HOST" | base64 -w0)
-        cat > secrets.yaml <<EOF
-        apiVersion: v1
-        kind: Secret
-        metadata:
-          name: ${{ inputs.APP_NAME }}
-        type: Opaque
-        data:
-          POSTGRES_USER: $POSTGRES_USER
-          POSTGRES_PASSWORD: $POSTGRES_PASSWORD
-          POSTGRES_DB: $POSTGRES_DB
-          POSTGRES_HOST: $POSTGRES_HOST
-        EOF
-        kubectl replace -f secrets.yaml -n "${{ env.KUBE_NAMESPACE }}" --force
-    - if: inputs.POSTGRES_HOST == ''
-      name: Set environment variables
+    - name: Prepare environment variables as K8s secret
       env:
         SECRETS_CONTEXT: ${{ toJson(secrets) }}
         VARS_CONTEXT: ${{ toJson(vars) }}        
@@ -242,6 +219,18 @@ jobs:
         if [ "$k8s_secrets$k8s_vars$k8s_secrets_lc$k8s_vars_lc"x == 'x' ]
         then echo ' {}' >> secrets.yaml
         else printf "$k8s_secrets\n$k8s_vars\n$k8s_secrets_lc\n$k8s_vars_lc" >> secrets.yaml
+        fi        
+        if [ "${POSTGRES_HOST}x" != "x" ]
+        then POSTGRES_USER=$(echo -n '${{ inputs.POSTGRES_USER || secrets.POSTGRES_USER || vars.POSTGRES_USER }}' | base64 -w0)
+        POSTGRES_PASSWORD=$(echo -n '${{ secrets.POSTGRES_PASSWORD }}' | base64 -w0)
+        POSTGRES_DB=$(echo -n '${{ inputs.POSTGRES_DB || secrets.POSTGRES_DB || vars.POSTGRES_DB  }}' | base64 -w0)
+        POSTGRES_HOST=$(echo -n "$POSTGRES_HOST" | base64 -w0)
+        cat >> secrets.yaml <<EOF
+          POSTGRES_USER: $POSTGRES_USER
+          POSTGRES_PASSWORD: $POSTGRES_PASSWORD
+          POSTGRES_DB: $POSTGRES_DB
+          POSTGRES_HOST: $POSTGRES_HOST
+        EOF
         fi
         kubectl replace -f secrets.yaml -n "${{ env.KUBE_NAMESPACE }}" --force
         rm secrets.yaml
