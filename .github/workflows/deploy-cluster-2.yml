@@ -218,7 +218,7 @@ jobs:
         k8s_vars_lc="$(echo -n "$VARS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("LC_K8S_SECRET_"))]|map("  \(.key|sub("LC_K8S_SECRET_"; "")|ascii_downcase): \(.value|tostring|@base64)")|.[]')"
         if [ "$k8s_secrets$k8s_vars$k8s_secrets_lc$k8s_vars_lc"x == 'x' ]
         then echo ' {}' >> secrets.yaml
-        else printf "$k8s_secrets\n$k8s_vars\n$k8s_secrets_lc\n$k8s_vars_lc" >> secrets.yaml
+        else printf "$k8s_secrets\n$k8s_vars\n$k8s_secrets_lc\n$k8s_vars_lc\n" >> secrets.yaml
         fi        
         if [ "${POSTGRES_HOST}x" != "x" ]
         then POSTGRES_USER=$(echo -n '${{ inputs.POSTGRES_USER || secrets.POSTGRES_USER || vars.POSTGRES_USER }}' | base64 -w0)
