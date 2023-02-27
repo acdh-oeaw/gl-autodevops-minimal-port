@@ -186,9 +186,9 @@ jobs:
         helm repo add bitnami https://charts.bitnami.com/bitnami
         helm upgrade --install --atomic --wait --version 12.2.1 \
           --set fullnameOverride="${{ inputs.APP_NAME }}-postgres" \
-          --set postgresqlUsername="${{ inputs.POSTGRES_USER || secrets.POSTGRES_USER || vars.POSTGRES_USER }}" \
-          --set postgresqlPassword="${{ secrets.POSTGRES_PASSWORD }}" \
-          --set postgresqlDatabase="${{ inputs.POSTGRES_DB || secrets.POSTGRES_DB }}" \
+          --set auth.username="${{ inputs.POSTGRES_USER || secrets.POSTGRES_USER || vars.POSTGRES_USER }}" \
+          --set auth.password="${{ secrets.POSTGRES_PASSWORD }}" \
+          --set auth.database="${{ inputs.POSTGRES_DB || secrets.POSTGRES_DB }}" \
           --set image.tag="${{ inputs.POSTGRES_VERSION || vars.POSTGRES_VERSION || '9.6.16' }}" \
           --set persistence.size="${{ inputs.POSTGRES_SIZE ||  vars.POSTGRES_SIZE || '1Gi' }}" \
           --namespace="${{ env.KUBE_NAMESPACE }}" \
