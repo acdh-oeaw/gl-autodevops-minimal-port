@@ -86,7 +86,9 @@ jobs:
   deploy-cluster-2:
 # This workflow depends on the DOCKER_TAG passed pointing to the right container image
     runs-on: 'ubuntu-latest'
-    environment: ${{ inputs.environment }}
+    environment: 
+      name: ${{ inputs.environment }}
+      url: ${{ inputs.PUBLIC_URL || vars.PUBLIC_URL }}
     steps:
     - uses: actions/checkout@v3
       name: Checkout gl-autodevops-minimal
