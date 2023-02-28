@@ -86,7 +86,9 @@ jobs:
   deploy:
 # This workflow depends on the DOCKER_TAG passed pointing to the right container image
     runs-on: 'ubuntu-latest'
-    environment: ${{ inputs.environment }}
+    environment: 
+      name: ${{ inputs.environment }}
+      url: ${{ inputs.PUBLIC_URL || vars.PUBLIC_URL }}
     steps:
     - uses: actions/checkout@v3
       name: Checkout gl-autodevops-minimal
@@ -184,45 +186,22 @@ jobs:
       name: Deploy PostgreSQL
       run: |
         helm repo add bitnami https://charts.bitnami.com/bitnami
-        helm upgrade --install --atomic --wait --version 8.2.1 \
+        helm upgrade --install --atomic --wait --version 12.2.1 \
           --set fullnameOverride="${{ inputs.APP_NAME }}-postgres" \
-          --set postgresqlUsername="${{ inputs.POSTGRES_USER || secrets.POSTGRES_USER || vars.POSTGRES_USER }}" \
-          --set postgresqlPassword="${{ secrets.POSTGRES_PASSWORD }}" \
-          --set postgresqlDatabase="${{ inputs.POSTGRES_DB || secrets.POSTGRES_DB }}" \
+          --set auth.username="${{ inputs.POSTGRES_USER || secrets.POSTGRES_USER || vars.POSTGRES_USER }}" \
+          --set auth.password="${{ secrets.POSTGRES_PASSWORD }}" \
+          --set auth.database="${{ inputs.POSTGRES_DB || secrets.POSTGRES_DB || vars.POSTGRES_DB }}" \
           --set image.tag="${{ inputs.POSTGRES_VERSION || vars.POSTGRES_VERSION || '9.6.16' }}" \
           --set persistence.size="${{ inputs.POSTGRES_SIZE ||  vars.POSTGRES_SIZE || '1Gi' }}" \
           --namespace="${{ env.KUBE_NAMESPACE }}" \
           "${{ inputs.APP_NAME }}-postgres" \
           bitnami/postgresql
         echo "POSTGRES_HOST=${{ inputs.APP_NAME }}-postgres" >> $GITHUB_ENV
-    - if: inputs.POSTGRES_HOST != '' || vars.POSTGRES_DB != ''
+    - if: inputs.POSTGRES_HOST != '' && vars.POSTGRES_DB != ''
       name: Set PostgreSQL server
       run: |
         echo "POSTGRES_HOST=${{ inputs.POSTGRES_HOST || vars.POSTGRES_HOST }}" >> $GITHUB_ENV
-    - if: env.POSTGRES_HOST != ''
-      name: Set Database credentials as environment variables
-      env:
-        SECRETS_CONTEXT: ${{ toJson(secrets) }}
-      run: |      
-        POSTGRES_USER=$(echo -n '${{ inputs.POSTGRES_USER || secrets.POSTGRES_USER || vars.POSTGRES_USER }}' | base64 -w0)
-        POSTGRES_PASSWORD=$(echo -n '${{ secrets.POSTGRES_PASSWORD }}' | base64 -w0)
-        POSTGRES_DB=$(echo -n '${{ inputs.POSTGRES_DB || secrets.POSTGRES_DB || vars.POSTGRES_DB  }}' | base64 -w0)
-        POSTGRES_HOST=$(echo -n "$POSTGRES_HOST" | base64 -w0)
-        cat > secrets.yaml <<EOF
-        apiVersion: v1
-        kind: Secret
-        metadata:
-          name: ${{ inputs.APP_NAME }}
-        type: Opaque
-        data:
-          POSTGRES_USER: $POSTGRES_USER
-          POSTGRES_PASSWORD: $POSTGRES_PASSWORD
-          POSTGRES_DB: $POSTGRES_DB
-          POSTGRES_HOST: $POSTGRES_HOST
-        EOF
-        kubectl replace -f secrets.yaml -n "${{ env.KUBE_NAMESPACE }}" --force
-    - if: inputs.POSTGRES_HOST == ''
-      name: Set environment variables
+    - name: Prepare environment variables as K8s secret
       env:
         SECRETS_CONTEXT: ${{ toJson(secrets) }}
         VARS_CONTEXT: ${{ toJson(vars) }}        
@@ -237,13 +216,23 @@ jobs:
         EOF
         k8s_secrets="$(echo -n "$SECRETS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("K8S_SECRET_"))]|map("  \(.key|sub("K8S_SECRET_"; "")): \(.value|tostring|@base64)")|.[]')"
         k8s_vars="$(echo -n "$VARS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("K8S_SECRET_"))]|map("  \(.key|sub("K8S_SECRET_"; "")): \(.value|tostring|@base64)")|.[]')"
-        if [ "$k8s_secrets$k8s_vars"x == 'x' ]
+        k8s_secrets_lc="$(echo -n "$SECRETS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("LC_K8S_SECRET_"))]|map("  \(.key|sub("LC_K8S_SECRET_"; "")|ascii_downcase): \(.value|tostring|@base64)")|.[]')"
+        k8s_vars_lc="$(echo -n "$VARS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("LC_K8S_SECRET_"))]|map("  \(.key|sub("LC_K8S_SECRET_"; "")|ascii_downcase): \(.value|tostring|@base64)")|.[]')"
+        if [ "$k8s_secrets$k8s_vars$k8s_secrets_lc$k8s_vars_lc"x == 'x' ]
         then echo ' {}' >> secrets.yaml
-        elif [ "$k8s_secrets"x == 'x' ]
-        then echo "$k8s_vars" >> secrets.yaml
-        elif [ "$k8s_vars"x == 'x' ]
-        then echo "$k8s_secrets" >> secrets.yaml
-        else printf "$k8s_secrets\n$k8s_vars" >> secrets.yaml
+        else printf "$k8s_secrets\n$k8s_vars\n$k8s_secrets_lc\n$k8s_vars_lc\n" >> secrets.yaml
+        fi        
+        if [ "${POSTGRES_HOST}x" != "x" ]
+        then POSTGRES_USER=$(echo -n '${{ inputs.POSTGRES_USER || secrets.POSTGRES_USER || vars.POSTGRES_USER }}' | base64 -w0)
+        POSTGRES_PASSWORD=$(echo -n '${{ secrets.POSTGRES_PASSWORD }}' | base64 -w0)
+        POSTGRES_DB=$(echo -n '${{ inputs.POSTGRES_DB || secrets.POSTGRES_DB || vars.POSTGRES_DB  }}' | base64 -w0)
+        POSTGRES_HOST=$(echo -n "$POSTGRES_HOST" | base64 -w0)
+        cat >> secrets.yaml <<EOF
+          POSTGRES_USER: $POSTGRES_USER
+          POSTGRES_PASSWORD: $POSTGRES_PASSWORD
+          POSTGRES_DB: $POSTGRES_DB
+          POSTGRES_HOST: $POSTGRES_HOST
+        EOF
         fi
         kubectl replace -f secrets.yaml -n "${{ env.KUBE_NAMESPACE }}" --force
         rm secrets.yaml
@@ -251,6 +240,10 @@ jobs:
       env:
         SECRETS_CONTEXT: ${{ toJson(secrets) }} 
       run: |
+        if [ -f "caller/chart/Chart.yaml" ]
+        then chart="caller/chart"
+        else chart=".github/auto-deploy-app"
+        fi
         DATABASE_URL="${{ secrets.DATABASE_URL }}"
         if [ -z $DATABASE_URL ]
         then
@@ -260,7 +253,7 @@ jobs:
           --values auto-deploy-values.yaml --install --atomic --wait \
           --set application.database_url="$DATABASE_URL" \
           --set application.secretName="${{ inputs.APP_NAME }}" ${{ secrets.HELM_UPGRADE_EXTRA_ARGS || vars.HELM_UPGRADE_EXTRA_ARGS }} \
-          .github/auto-deploy-app
+        $chart  
     - name: auto-deploy-values.yaml
       uses: actions/upload-artifact@v3
       if: always()
