@@ -111,6 +111,77 @@ For example `KUBE_NAMESPACE` or `HELM_UPGRADE_EXTRA_ARGS` can be set as project 
 Deployment specific variables like `KUBE_INGRESS_BASE_DOMAIN` need to be set on the project level.
 _Note_: At least one variable and one secret need to be set on the project level else `deploy.yaml` will end with an error.
 
+Variables and Secrets
+---------------------
+
+GitHub has two ways of storing data with a repository but not in the gitted code:
+* Secrets are meant for data that is to be kept secret all as much as possible  
+  Examples would be:
+  * Database passwords
+  * API secrets
+  * Maybe API Keys/Access IDs
+  * Access token
+  * Even encoded files such as a Kubernetes configuration
+* Variables are a newer edition, that do provide a means to store some additional data that can be publicly available  
+  Examples would be:
+  * the public URL of a deployment
+  * an ID of a deployment
+  * the K8s namespace the deployment uses
+  * API Keys/Access IDs 
+
+Also the same mechanism as in gl is implemented to pass Secrets and Variables to the build process and the running deployment (as a K8s Secret).
+
+Variables and secrets can be set on three levels in GitHub:
+1. Organization level (Org)
+2. Repository level (Repo)
+3. Environment level (Env)
+
+A Variable or Secret in a higher level overrides a Variable or Secret with the same name in a lower level.
+
+_Note_: GitHub Environment Variables are not automaticall Workflow environment variables (vars context vs. env context)
+
+|Name|Required|Type|Level|Description|
+|----|:------:|----|:---:|-----------|
+|KUBE_CONFIG|:white_check_mark:|Secret|Org|base64 encoded K8s config file. Usually set at the Org level and shared by all (public) repositories.
+|C2_KUBE_CONFIG|:white_check_mark:|Secret|Org|If you deploy using the workflow for the second cluster the C2_ variant is used
+|KUBE_INGRESS_BASE_DOMAIN|:white_check_mark:|Variable|Org/Repo/Env|The DNS suffix used when generating URLs for the service
+|C2_KUBE_INGRESS_BASE_DOMAIN|:white_check_mark:|Variable|Org/Repo/Env|If you deploy using the workflow for the second cluster the C2_ variant is used
+|KUBE_NAMESPACE|:white_check_mark:|Variable|Repo/Env|The K8s namespace the deployment should be installed to
+|PUBLIC_URL|:white_check_mark:|Variable|Env|The URI that should be configured for access to the service
+|SERVICE_ID|:white_check_mark:|Variable|Env|A K8s label ID is attached to the workload/deployment with this value (usually a number)
+|POSTGRES_ENABLED||Variable|Repo/Env|Boolean that determines if a PostgreSQL database is installed with the deployment but using a separate helm chart. Default is false.
+|POSTGRES_VERSION||Variable|Repo/Env|Version ([tag](https://hub.docker.com/r/bitnami/postgresql/tags)) of PostgreSQL to deploy. Default is 9.6.16 (for historical gl reasons)
+|POSTGRES_HOST||Variable|Repo/Env|Hostname of an external PostgreSQL service
+|POSTGRES_USER||Variable|Env|Username for the PostgreSQL database. Will be configured for the new PostgreSQL deployment if POSTGRES_ENABLED is true
+|POSTGRES_PASSWORD||Secret|Env|Password for the PostgreSQL database. Will be configured for the new PostgreSQL deployment if POSTGRES_ENABLED is true
+|POSTGRES_DB||Variable|Env|Name of the PostgreSQL database to use. Will be created in the new PostgreSQL deployment if POSTGRES_ENABLED is true
+|DATABASE_URL||Secret|Env|Credentials for a database passed to the running workload in a URL form (`db_type://username:password@db_host/db_name`). This is automatically genereated for PostgreSQL database installed with the deployment. Store as a Secret as it usually contains the password.
+|HELM_UPGRADE_EXTRA_ARGS||Variable|Repo/Env|Used to set a few values from the Helm charts value.yaml using `--set` command line parameters to `helm`. If you have to set more or nested values better use a `auto-deploy-values.yaml` file in the git repository. Store as a Secret if you `--set` sensitive information (not recommended)
+|K8S_SECRET_&lt;ENV_VAR_NAME>||Variable/Secret|Repo/Env|Passes ENV_VAR_NAME to the build process and to the running workload using a K8s secret
+|LC_K8S_SECRET_&lt;ENV_VAR_NAME>||Variable/Secret|Repo/Env|Passes env_var_name to the build process and to the running workload using a K8s secret. GitHub does not allow Variables or Secrets to contain lower case letters (yet)
+|
+
+_Note_: Some of the settings stored in variables above are also recognized as Secrets for legacy reasons. There is however no point in using them like this. Also some of the variables can be set in the suggested `starter.yaml`. This is only a useful place to set such variables if you don't work with environments.
+
+Example DATABASE_URLs:
+* `postgres://deployment:abcd098ABCD:5432@dbserver.example.org/deployment`
+* `postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:5432/$POSTGRES_DB`
+* `mariadb://deployment:abcd098ABCD:3306@dbserver.example.org/deployment`
+* `mysql://deployment:abcd098ABCD:3306@dbserver.example.org/deployment`
+
+[For the POSTGRES_ variables see also the gl docs.](https://docs.gitlab.com/ee/topics/autodevops/cicd_variables.html#database-variables)
+
+Customizing the deployment
+--------------------------
+
+The `auto-deploy-app` helm chart from gl we use can be tweaked in many ways with a [values.yaml](.github\auto-deploy-app\values.yaml) file.
+
+If you store your settings as `.github/auto-deploy-values.yaml` or `.gitlab/auto-deploy-values.yaml` in the root of your repoitory it will be picked up by the deployment script and used to customize the `auto-deploy-app` chart.
+
+If you need to further customize deployment (like deploying an extra service like solr with your application) you can store a bundled helm chart in a directory `chart` in your repository and that will be used instead of the generic `auto-deploy-app` chart from this repository.
+
+[See also the gl documentation.](https://docs.gitlab.com/ee/topics/autodevops/customize.html#custom-helm-chart)
+
 TODO
 ----
 
@@ -122,3 +193,5 @@ Source of the auto-deploy-app
 The [auto-deploy-app](https://gitlab.com/gitlab-org/cluster-integration/auto-deploy-image/-/tree/master/assets/auto-deploy-app) helm chart is part of the [Gitlab cluster-integration auto-deploy-image repository](https://gitlab.com/gitlab-org/cluster-integration/auto-deploy-image)
 
 This helm chart should be updated onco in a while.
+
+_Note:_ At least one Secret and one Variable is required for the workflows in this repository to work. Usually at least a K8s config as secret and a KUBE_INGRESS_BASE_DOMAIN are set so this limitation is rarely encountered.
