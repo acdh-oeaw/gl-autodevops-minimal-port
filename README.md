@@ -157,8 +157,8 @@ _Note_: GitHub Environment Variables are not automaticall Workflow environment v
 |POSTGRES_DB||Variable|Env|Name of the PostgreSQL database to use. Will be created in the new PostgreSQL deployment if POSTGRES_ENABLED is true
 |DATABASE_URL||Secret|Env|Credentials for a database passed to the running workload in a URL form (`db_type://username:password@db_host/db_name`). This is automatically genereated for PostgreSQL database installed with the deployment. Store as a Secret as it usually contains the password.
 |HELM_UPGRADE_EXTRA_ARGS||Variable|Repo/Env|Used to set a few values from the Helm charts value.yaml using `--set` command line parameters to `helm`. If you have to set more or nested values better use a `auto-deploy-values.yaml` file in the git repository. Store as a Secret if you `--set` sensitive information (not recommended)
-|K8S_SECRET_&lt;ENV_VAR_NAME>||Variable/Secret|Repo/Env|Passes ENV_VAR_NAME to the build process and to the running workload using a K8s secret
-|LC_K8S_SECRET_&lt;ENV_VAR_NAME>||Variable/Secret|Repo/Env|Passes env_var_name to the build process and to the running workload using a K8s secret. GitHub does not allow Variables or Secrets to contain lower case letters (yet)|
+|K8S_SECRET_`<ENV_VAR_NAME>`||Variable/Secret|Repo/Env|Passes `ENV_VAR_NAME` to the build process and to the running workload using a K8s secret
+|LC_K8S_SECRET_`<ENV_VAR_NAME>`||Variable/Secret|Repo/Env|Passes `env_var_name` to the build process and to the running workload using a K8s secret. GitHub does not allow Variables or Secrets to contain lower case letters (yet)|
 
 _Note_: Some of the settings stored in variables above are also recognized as Secrets for legacy reasons. There is however no point in using them like this. Also some of the variables can be set in the suggested `starter.yaml`. This is only a useful place to set such variables if you don't work with environments.
 
