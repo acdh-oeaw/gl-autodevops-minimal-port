@@ -79,8 +79,10 @@ jobs:
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
           VARS_CONTEXT: ${{ toJson(vars) }} 
         run: |
-          echo -n "$SECRETS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("K8S_SECRET_"))]|map("\(.key|sub("K8S_SECRET_"; ""))=\(.value|tostring|@sh)")|.[]' > secrets.env
-          echo -n "$VARS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("K8S_SECRET_"))]|map("  \(.key|sub("K8S_SECRET_"; "")): \(.value|tostring|@base64)")|.[]' >> secrets.env
+          echo -n "$SECRETS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("K8S_SECRET_"))]|map("export \(.key|sub("K8S_SECRET_"; ""))=\(.value|tostring|@sh)")|.[]' > secrets.env
+          echo -n "$VARS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("K8S_SECRET_"))]|map("export \(.key|sub("K8S_SECRET_"; "")): \(.value|tostring|@sh)")|.[]' >> secrets.env
+          echo -n "$SECRETS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("LC_K8S_SECRET_"))]|map("export \(.key|sub("LC_K8S_SECRET_"; "")|ascii_downcase): \(.value|tostring|@sh)")|.[]' >> secrets.env
+          echo -n "$VARS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("LC_K8S_SECRET_"))]|map("export \(.key|sub("LC_K8S_SECRET_"; "")|ascii_downcase): \(.value|tostring|@sh)")|.[]' >> secrets.env
           herokuish_base_image="${{ inputs.herokuish_base_image }}"
           if [ "$herokuish_base_image"x = 'x' ]
           then herokuish_base_image="gliderlabs/herokuish:latest-22"
