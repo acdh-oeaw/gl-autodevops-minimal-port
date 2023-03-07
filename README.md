@@ -31,6 +31,7 @@ jobs:
       # environment: review/dev
 # or see the switch on ref_name script below
       environment: ${{ steps.get_environment_from_git_ref.outputs.environment }}
+      environment_short: ${{ steps.get_environment_from_git_ref.outputs.environment_short }}
       image_name: your-image-name
       registry_root: ghcr.io/${{ github.repository }}/
       default_port: "5000"
@@ -52,10 +53,12 @@ jobs:
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
             echo "environment=production"
             echo "environment=production" >> $GITHUB_OUTPUT
+            echo "environment_short=prod" >> $GITHUB_OUTPUT
           else
             echo "environment=review/${{ github.ref_name }}"
             echo "environment=review/${{ github.ref_name }}" >> $GITHUB_OUTPUT
-          fi      
+            echo "environment_short=$(echo -n ${{ github.ref_name }} | sed s/feature_// | tr '_' '-' | tr '[:upper:]' '[:lower:]' )" >> $GITHUB_OUTPUT
+          fi
   _1:
     needs: [setup_workflow_env]
     uses:  acdh-oeaw/gl-autodevops-minimal-port/.github/workflows/build-cnb-and-push-to-registry.yaml@main
@@ -96,7 +99,7 @@ jobs:
     with:
       environment: ${{ needs.setup_workflow_env.outputs.environment}}
       DOCKER_TAG: ${{ needs.setup_workflow_env.outputs.registry_root }}${{ needs.setup_workflow_env.outputs.image_name }}
-      APP_NAME: ${{ needs.setup_workflow_env.outputs.APP_NAME }}-${{ needs.setup_workflow_env.outputs.environment }}
+      APP_NAME: ${{ needs.setup_workflow_env.outputs.APP_NAME }}-${{ needs.setup_workflow_env.outputs.environment_short }}
       APP_ROOT: ${{ needs.setup_workflow_env.outputs.APP_ROOT }}
       SERVICE_ID: ${{ needs.setup_workflow_env.outputs.SERVICE_ID }}
       PUBLIC_URL: ${{ needs.setup_workflow_env.outputs.PUBLIC_URL }}
