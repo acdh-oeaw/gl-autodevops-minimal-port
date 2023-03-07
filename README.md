@@ -33,6 +33,10 @@ jobs:
       environment: ${{ steps.get_environment_from_git_ref.outputs.environment }}
       environment_short: ${{ steps.get_environment_from_git_ref.outputs.environment_short }}
       image_name: your-image-name
+# Please note that the next line only works correctly with repositories that don't contain
+# upper case characters. If you have such a repo name please replace ${{ github.repository }}
+# with org/repo-name (all lower case).
+# E. g. ACDH-OEAW/OpenAtlas-Discovery -> acdh-oeaw/openatlas-discovery
       registry_root: ghcr.io/${{ github.repository }}/
       default_port: "5000"
       submodules: "true"
