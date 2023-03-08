@@ -29,6 +29,9 @@ items:
         {{- if $jobConfig.activeDeadlineSeconds }}
         activeDeadlineSeconds: {{ $jobConfig.activeDeadlineSeconds }}
         {{- end }}
+        {{- if $jobConfig.backoffLimit }}
+        backoffLimit: {{ $jobConfig.backoffLimit }}
+        {{- end }}
         template:
           metadata:
             annotations:
