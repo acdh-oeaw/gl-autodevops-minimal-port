@@ -197,7 +197,7 @@ jobs:
           "${{ inputs.APP_NAME }}-postgres" \
           bitnami/postgresql
         echo "POSTGRES_HOST=${{ inputs.APP_NAME }}-postgres" >> $GITHUB_ENV
-    - if: inputs.POSTGRES_HOST != '' && vars.POSTGRES_DB != ''
+    - if: (vars.POSTGRES_HOST != '' || inputs.POSTGRES_HOST != '') && vars.POSTGRES_DB != ''
       name: Set PostgreSQL server
       run: |
         echo "POSTGRES_HOST=${{ inputs.POSTGRES_HOST || vars.POSTGRES_HOST }}" >> $GITHUB_ENV
