@@ -137,7 +137,7 @@ jobs:
         echo 'POSTGRES_ENABLED="${{ inputs.POSTGRES_ENABLED || vars.POSTGRES_ENABLED }}"' >> $GITHUB_ENV
         echo 'POSTGRES_HOST="${{ inputs.APP_NAME }}-postgres"' >> $GITHUB_ENV
         echo 'POSTGRES_USER="${{ inputs.POSTGRES_USER || secrets.POSTGRES_USER || vars.POSTGRES_USER }}"' >> $GITHUB_ENV
-        echo 'POSTGRES_PASSWORD="${{ inputs.POSTGRES_USER || secrets.POSTGRES_USER || vars.POSTGRES_USER }}"' >> $GITHUB_ENV
+        echo 'POSTGRES_PASSWORD="${{ secrets.POSTGRES_PASSWORD }}"' >> $GITHUB_ENV
         echo 'POSTGRES_DB="${{ inputs.POSTGRES_DB || secrets.POSTGRES_DB || vars.POSTGRES_DB }}"' >> $GITHUB_ENV
         echo 'POSTGRES_VERSION="${{ inputs.POSTGRES_VERSION || vars.POSTGRES_VERSION || '9.6.16' }}"' >> $GITHUB_ENV
         echo 'POSTGRES_SIZE="${{ inputs.POSTGRES_SIZE ||  vars.POSTGRES_SIZE || '1Gi' }}"' >> $GITHUB_ENV
@@ -148,7 +148,7 @@ jobs:
         echo 'POSTGRES_ENABLED=false' >> $GITHUB_ENV
         echo "POSTGRES_HOST=${{ inputs.POSTGRES_HOST || vars.POSTGRES_HOST }}" >> $GITHUB_ENV
         echo 'POSTGRES_USER="${{ inputs.POSTGRES_USER || secrets.POSTGRES_USER || vars.POSTGRES_USER }}"' >> $GITHUB_ENV
-        echo 'POSTGRES_PASSWORD="${{ inputs.POSTGRES_USER || secrets.POSTGRES_USER || vars.POSTGRES_USER }}"' >> $GITHUB_ENV
+        echo 'POSTGRES_PASSWORD="${{ secrets.POSTGRES_PASSWORD }}"' >> $GITHUB_ENV
         echo 'POSTGRES_DB="${{ inputs.POSTGRES_DB || secrets.POSTGRES_DB || vars.POSTGRES_DB }}"' >> $GITHUB_ENV
         DATABASE_URL="${{ secrets.DATABASE_URL }}"
         if [ -z $DATABASE_URL ]
