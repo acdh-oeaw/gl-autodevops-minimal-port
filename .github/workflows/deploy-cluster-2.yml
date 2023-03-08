@@ -134,6 +134,7 @@ jobs:
           --namespace="${{ env.KUBE_NAMESPACE }}" \
           "${{ inputs.APP_NAME }}-postgres" \
           bitnami/postgresql
+        echo 'POSTGRES_ENABLED="${{ inputs.POSTGRES_ENABLED || vars.POSTGRES_ENABLED }}"' >> $GITHUB_ENV
         echo 'POSTGRES_HOST="${{ inputs.APP_NAME }}-postgres"' >> $GITHUB_ENV
         echo 'POSTGRES_USER="${{ inputs.POSTGRES_USER || secrets.POSTGRES_USER || vars.POSTGRES_USER }}"' >> $GITHUB_ENV
         echo 'POSTGRES_PASSWORD="${{ inputs.POSTGRES_USER || secrets.POSTGRES_USER || vars.POSTGRES_USER }}"' >> $GITHUB_ENV
@@ -144,6 +145,7 @@ jobs:
     - if: (vars.POSTGRES_HOST != '' || inputs.POSTGRES_HOST != '') && vars.POSTGRES_DB != ''
       name: Set PostgreSQL server
       run: |
+        echo 'POSTGRES_ENABLED=false' >> $GITHUB_ENV
         echo "POSTGRES_HOST=${{ inputs.POSTGRES_HOST || vars.POSTGRES_HOST }}" >> $GITHUB_ENV
         echo 'POSTGRES_USER="${{ inputs.POSTGRES_USER || secrets.POSTGRES_USER || vars.POSTGRES_USER }}"' >> $GITHUB_ENV
         echo 'POSTGRES_PASSWORD="${{ inputs.POSTGRES_USER || secrets.POSTGRES_USER || vars.POSTGRES_USER }}"' >> $GITHUB_ENV
@@ -213,7 +215,7 @@ jobs:
         tag=${docker_tag/*:/} \
         app_name="${{ inputs.APP_NAME }}" \
         app_name_in_url=${app_name// /-} \
-        envsubst '$repo_url $ref_name $kube_ingress_base_domain $public_url $service_id $docker_tag $repository $tag $app_name $app_name_in_url $POSTGRES_HOST $POSTGRES_USER $POSTGRES_PASSWORD $POSTGRES_DB $POSTGRES_VERSION $POSTGRES_SIZE $DATABASE_URL' < tmp-auto-deploy-values.yaml > auto-deploy-values.yaml
+        envsubst '$repo_url $ref_name $kube_ingress_base_domain $public_url $service_id $docker_tag $repository $tag $app_name $app_name_in_url $POSTGRES_ENABLED $POSTGRES_HOST $POSTGRES_USER $POSTGRES_PASSWORD $POSTGRES_DB $POSTGRES_VERSION $POSTGRES_SIZE $DATABASE_URL' < tmp-auto-deploy-values.yaml > auto-deploy-values.yaml
     - name: Prepare environment variables as K8s secret
       env:
         SECRETS_CONTEXT: ${{ toJson(secrets) }}
