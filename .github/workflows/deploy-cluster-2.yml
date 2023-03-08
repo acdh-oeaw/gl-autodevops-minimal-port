@@ -154,6 +154,7 @@ jobs:
         if [ -z $DATABASE_URL ]
         then echo 'DATABASE_URL="postgres://${{ secrets.POSTGRES_USER || vars.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@${{ env.POSTGRES_HOST }}:5432/${{ secrets.POSTGRES_DB || vars.POSTGRES_DB }}"' >> $GITHUB_ENV
         else echo 'DATABASE_URL="${{ secrets.DATABASE_URL }}"' >> $GITHUB_ENV
+        fi
     - name: Create auto-deploy-values.yaml
       run: |
         if [ -f caller/.github/auto-deploy-values.yaml ]
