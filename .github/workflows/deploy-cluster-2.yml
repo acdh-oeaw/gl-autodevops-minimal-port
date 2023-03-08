@@ -141,7 +141,7 @@ jobs:
         echo 'POSTGRES_VERSION="${{ inputs.POSTGRES_VERSION || vars.POSTGRES_VERSION || '9.6.16' }}"' >> $GITHUB_ENV
         echo 'POSTGRES_SIZE="${{ inputs.POSTGRES_SIZE ||  vars.POSTGRES_SIZE || '1Gi' }}"' >> $GITHUB_ENV
         echo 'DATABASE_URL="postgres://${{ secrets.POSTGRES_USER || vars.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@${{ env.POSTGRES_HOST }}:5432/${{ secrets.POSTGRES_DB || vars.POSTGRES_DB }}"' >> $GITHUB_ENV
-    - if: inputs.POSTGRES_HOST != '' && vars.POSTGRES_DB != ''
+    - if: (vars.POSTGRES_HOST != '' || inputs.POSTGRES_HOST != '') && vars.POSTGRES_DB != ''
       name: Set PostgreSQL server
       run: |
         echo "POSTGRES_HOST=${{ inputs.POSTGRES_HOST || vars.POSTGRES_HOST }}" >> $GITHUB_ENV
