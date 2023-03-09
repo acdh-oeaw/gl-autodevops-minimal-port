@@ -122,9 +122,12 @@ jobs:
           type=raw,value={{sha}}
     - if: inputs.POSTGRES_ENABLED || vars.POSTGRES_ENABLED || false
       name: Deploy PostgreSQL
+      # --set volumePermissions.enabled=true is only needed for older cotainers like 9.6(.16).
+      # should be removed once only newer postgres versions are used
       run: |
         helm repo add bitnami https://charts.bitnami.com/bitnami
-        helm upgrade --install --atomic --wait --version 12.2.1 \
+        helm upgrade --install --atomic --wait --version 12.2.2 \
+          --set volumePermissions.enabled=true \
           --set fullnameOverride="${{ inputs.APP_NAME }}-postgres" \
           --set auth.username="${{ inputs.POSTGRES_USER || secrets.POSTGRES_USER || vars.POSTGRES_USER }}" \
           --set auth.password="${{ secrets.POSTGRES_PASSWORD }}" \
