@@ -145,17 +145,19 @@ jobs:
         echo 'POSTGRES_VERSION=${{ inputs.POSTGRES_VERSION || vars.POSTGRES_VERSION || '9.6.16' }}' >> $GITHUB_ENV
         echo 'POSTGRES_SIZE=${{ inputs.POSTGRES_SIZE ||  vars.POSTGRES_SIZE || '1Gi' }}' >> $GITHUB_ENV
         echo 'DATABASE_URL=postgres://${{ secrets.POSTGRES_USER || vars.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@${{ env.POSTGRES_HOST }}:5432/${{ secrets.POSTGRES_DB || vars.POSTGRES_DB }}' >> $GITHUB_ENV
-    - if: ((vars.POSTGRES_HOST != '' || inputs.POSTGRES_HOST != '') && vars.POSTGRES_DB != '') || secrets.DATABASE_URL
-      name: Set DB server access credentials
+    - if: (vars.POSTGRES_HOST != '' || inputs.POSTGRES_HOST != '') && vars.POSTGRES_DB != ''
+      name: Set PostgreSQL server access credentials
       run: |
         echo 'POSTGRES_ENABLED=false' >> $GITHUB_ENV
         echo 'POSTGRES_HOST=${{ inputs.POSTGRES_HOST || vars.POSTGRES_HOST }}' >> $GITHUB_ENV
         echo 'POSTGRES_USER=${{ inputs.POSTGRES_USER || secrets.POSTGRES_USER || vars.POSTGRES_USER }}' >> $GITHUB_ENV
         echo 'POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}' >> $GITHUB_ENV
         echo 'POSTGRES_DB=${{ inputs.POSTGRES_DB || secrets.POSTGRES_DB || vars.POSTGRES_DB }}' >> $GITHUB_ENV
+    - name: Set DATABASE_URL
+      run: |
         DATABASE_URL="${{ secrets.DATABASE_URL }}"
         if [ -z $DATABASE_URL ]
-        then echo 'DATABASE_URL=postgres://${{ secrets.POSTGRES_USER || vars.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@${{ env.POSTGRES_HOST }}:5432/${{ secrets.POSTGRES_DB || vars.POSTGRES_DB }}' >> $GITHUB_ENV
+        then if [ "${POSTGRES_HOST}x" != "x" ]; then echo 'DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}}:5432/${POSTGRES_DB}' >> $GITHUB_ENV; fi
         else echo 'DATABASE_URL=${{ secrets.DATABASE_URL }}' >> $GITHUB_ENV
         fi
     - name: Create auto-deploy-values.yaml
