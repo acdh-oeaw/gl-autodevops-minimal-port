@@ -145,8 +145,8 @@ jobs:
         echo 'POSTGRES_VERSION=${{ inputs.POSTGRES_VERSION || vars.POSTGRES_VERSION || '9.6.16' }}' >> $GITHUB_ENV
         echo 'POSTGRES_SIZE=${{ inputs.POSTGRES_SIZE ||  vars.POSTGRES_SIZE || '1Gi' }}' >> $GITHUB_ENV
         echo 'DATABASE_URL=postgres://${{ secrets.POSTGRES_USER || vars.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@${{ env.POSTGRES_HOST }}:5432/${{ secrets.POSTGRES_DB || vars.POSTGRES_DB }}' >> $GITHUB_ENV
-    - if: (vars.POSTGRES_HOST != '' || inputs.POSTGRES_HOST != '') && vars.POSTGRES_DB != ''
-      name: Set PostgreSQL server
+    - if: ((vars.POSTGRES_HOST != '' || inputs.POSTGRES_HOST != '') && vars.POSTGRES_DB != '') || secrets.DATABASE_URL
+      name: Set DB server access credentials
       run: |
         echo 'POSTGRES_ENABLED=false' >> $GITHUB_ENV
         echo 'POSTGRES_HOST=${{ inputs.POSTGRES_HOST || vars.POSTGRES_HOST }}' >> $GITHUB_ENV
@@ -251,6 +251,12 @@ jobs:
           POSTGRES_PASSWORD: $POSTGRES_PASSWORD
           POSTGRES_DB: $POSTGRES_DB
           POSTGRES_HOST: $POSTGRES_HOST
+        EOF
+        fi
+        if [ "${DATABASE_URL}x" != "x" ]        
+        then DATABASE_URL=$(echo -n "${DATABASE_URL}" | base64 -w0)
+        cat >> secrets.yaml <<EOF
+          DATABASE_URL: $DATABASE_URL
         EOF
         fi
         kubectl replace -f secrets.yaml -n "${{ env.KUBE_NAMESPACE }}" --force
