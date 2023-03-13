@@ -57,6 +57,10 @@ on:
         required: false
         type: string
         default: 'false'
+      do_deploy:
+        required: false
+        type: boolean
+        default: true
     secrets:
       KUBE_CONFIG:
         description: 'The kubctl config file with credentials to access the your kubernetes'
@@ -86,6 +90,7 @@ jobs:
   deploy:
 # This workflow depends on the DOCKER_TAG passed pointing to the right container image
     runs-on: 'ubuntu-latest'
+    if: ${{ inputs.do_deploy }}
     environment: 
       name: ${{ inputs.environment }}
       url: ${{ inputs.PUBLIC_URL || vars.PUBLIC_URL }}
