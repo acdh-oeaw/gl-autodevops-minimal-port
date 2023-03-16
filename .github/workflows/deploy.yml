@@ -218,7 +218,7 @@ jobs:
         EOF
         fi
         repo_url="${{ github.repositoryUrl }}" \
-        ref_name="${{ github.ref_name }}" \
+        ref_name=$(echo -n "${{ github.ref_name }}" | tr '/' '-' | tr '_' '-' | tr '[:upper:]' '[:lower:]' ) \
         kube_ingress_base_domain="${{ inputs.KUBE_INGRESS_BASE_DOMAIN || secrets.KUBE_INGRESS_BASE_DOMAIN || vars.KUBE_INGRESS_BASE_DOMAIN }}" \
         public_url="${{ inputs.PUBLIC_URL || vars.PUBLIC_URL }}" \
         service_id="${{ inputs.SERVICE_ID || vars.SERVICE_ID }}" \
