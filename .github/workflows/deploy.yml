@@ -226,7 +226,7 @@ jobs:
         repository=${docker_tag/:*/} \
         tag=${docker_tag/*:/} \
         app_name="${{ inputs.APP_NAME }}" \
-        app_name_in_url=${app_name// /-} \
+        app_name_in_url=$(echo -n "${app_name// /-}" | tr '_' '-' | tr '[:upper:]' '[:lower:]' ) \
         envsubst '$repo_url $ref_name $kube_ingress_base_domain $public_url $service_id $docker_tag $repository $tag $app_name $app_name_in_url $POSTGRES_ENABLED $POSTGRES_HOST $POSTGRES_USER $POSTGRES_PASSWORD $POSTGRES_DB $POSTGRES_VERSION $POSTGRES_SIZE $DATABASE_URL $DEPLOY_DATABASE' < tmp-auto-deploy-values.yaml > auto-deploy-values.yaml
     - name: Prepare environment variables as K8s secret
       env:
