@@ -233,11 +233,12 @@ jobs:
         SECRETS_CONTEXT: ${{ toJson(secrets) }}
         VARS_CONTEXT: ${{ toJson(vars) }}        
       run: |
+        secret_name=$(echo -n "${{ inputs.APP_NAME }}" | tr '[:upper:]' '[:lower:]')
         cat > secrets.yaml <<EOF
         apiVersion: v1
         kind: Secret
         metadata:
-          name: ${{ inputs.APP_NAME }}
+          name: $secret_name
         type: Opaque
         data:
         EOF
