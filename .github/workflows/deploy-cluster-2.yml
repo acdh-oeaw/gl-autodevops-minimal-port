@@ -151,18 +151,19 @@ jobs:
         echo 'POSTGRES_SIZE=${{ inputs.POSTGRES_SIZE ||  vars.POSTGRES_SIZE || '1Gi' }}' >> $GITHUB_ENV
         echo 'DATABASE_URL=postgres://${{ secrets.POSTGRES_USER || vars.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@${{ env.POSTGRES_HOST }}:5432/${{ secrets.POSTGRES_DB || vars.POSTGRES_DB }}' >> $GITHUB_ENV
     - if: (vars.POSTGRES_HOST != '' || inputs.POSTGRES_HOST != '') && vars.POSTGRES_DB != ''
-      name: Set PostgreSQL server access credentials
+      name: Set use external PostgreSQL server
       run: |
         echo 'POSTGRES_ENABLED=false' >> $GITHUB_ENV
         echo 'POSTGRES_HOST=${{ inputs.POSTGRES_HOST || vars.POSTGRES_HOST }}' >> $GITHUB_ENV
+    - name: Set PostgreSQL server access credentials as environment variable
+      run: |
+        echo 'DEPLOY_DATABASE=${{ vars.DEPLOY_DATABASE || (vars.POSTGRES_HOST == '' && inputs.POSTGRES_HOST == '' && env.POSTGRES_ENABLED == '') }}' >> $GITHUB_ENV
         echo 'POSTGRES_USER=${{ inputs.POSTGRES_USER || secrets.POSTGRES_USER || vars.POSTGRES_USER }}' >> $GITHUB_ENV
         echo 'POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}' >> $GITHUB_ENV
         echo 'POSTGRES_DB=${{ inputs.POSTGRES_DB || secrets.POSTGRES_DB || vars.POSTGRES_DB }}' >> $GITHUB_ENV
-    - name: Set DATABASE_URL
-      run: |
         DATABASE_URL="${{ secrets.DATABASE_URL }}"
         if [ -z $DATABASE_URL ]
-        then if [ "${POSTGRES_HOST}x" != "x" ]; then echo 'DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}}:5432/${POSTGRES_DB}' >> $GITHUB_ENV; fi
+        then if [ "${POSTGRES_HOST}x" != "x" ]; then echo "DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}}:5432/${POSTGRES_DB}" >> $GITHUB_ENV; fi
         else echo 'DATABASE_URL=${{ secrets.DATABASE_URL }}' >> $GITHUB_ENV
         fi
     - name: Create auto-deploy-values.yaml
@@ -226,7 +227,7 @@ jobs:
         tag=${docker_tag/*:/} \
         app_name="${{ inputs.APP_NAME }}" \
         app_name_in_url=${app_name// /-} \
-        envsubst '$repo_url $ref_name $kube_ingress_base_domain $public_url $service_id $docker_tag $repository $tag $app_name $app_name_in_url $POSTGRES_ENABLED $POSTGRES_HOST $POSTGRES_USER $POSTGRES_PASSWORD $POSTGRES_DB $POSTGRES_VERSION $POSTGRES_SIZE $DATABASE_URL' < tmp-auto-deploy-values.yaml > auto-deploy-values.yaml
+        envsubst '$repo_url $ref_name $kube_ingress_base_domain $public_url $service_id $docker_tag $repository $tag $app_name $app_name_in_url $POSTGRES_ENABLED $POSTGRES_HOST $POSTGRES_USER $POSTGRES_PASSWORD $POSTGRES_DB $POSTGRES_VERSION $POSTGRES_SIZE $DATABASE_URL $DEPLOY_DATABASE' < tmp-auto-deploy-values.yaml > auto-deploy-values.yaml
     - name: Prepare environment variables as K8s secret
       env:
         SECRETS_CONTEXT: ${{ toJson(secrets) }}
@@ -244,7 +245,7 @@ jobs:
         k8s_vars="$(echo -n "$VARS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("K8S_SECRET_"))]|map("  \(.key|sub("K8S_SECRET_"; "")): \(.value|tostring|@base64)")|.[]')"
         k8s_secrets_lc="$(echo -n "$SECRETS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("LC_K8S_SECRET_"))]|map("  \(.key|sub("LC_K8S_SECRET_"; "")|ascii_downcase): \(.value|tostring|@base64)")|.[]')"
         k8s_vars_lc="$(echo -n "$VARS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("LC_K8S_SECRET_"))]|map("  \(.key|sub("LC_K8S_SECRET_"; "")|ascii_downcase): \(.value|tostring|@base64)")|.[]')"
-        if [ "$k8s_secrets$k8s_vars$k8s_secrets_lc$k8s_vars_lc$POSTGRES_HOST"x == 'x' ]
+        if [ "$k8s_secrets$k8s_vars$k8s_secrets_lc$k8s_vars_lc$POSTGRES_HOST$DATABASE_URL$DEPLOY_DATABASE"x == 'x' ]
         then echo ' {}' >> secrets.yaml
         else printf "$k8s_secrets\n$k8s_vars\n$k8s_secrets_lc\n$k8s_vars_lc\n" >> secrets.yaml
         fi
@@ -264,6 +265,12 @@ jobs:
         then DATABASE_URL=$(echo -n "${DATABASE_URL}" | base64 -w0)
         cat >> secrets.yaml <<EOF
           DATABASE_URL: $DATABASE_URL
+        EOF
+        fi
+        if [ "${DEPLOY_DATABASE}x" != "x" ]        
+        then DEPLOY_DATABASE=$(echo -n "${DEPLOY_DATABASE}" | base64 -w0)
+        cat >> secrets.yaml <<EOF
+          DEPLOY_DATABASE: $DEPLOY_DATABASE
         EOF
         fi
         kubectl replace -f secrets.yaml -n "${{ env.KUBE_NAMESPACE }}" --force
