@@ -227,13 +227,13 @@ jobs:
         tag=${docker_tag/*:/} \
         app_name="${{ inputs.APP_NAME }}" \
         app_name_in_url=${app_name// /-} \
-        envsubst '$repo_url $ref_name $kube_ingress_base_domain $public_url $service_id $docker_tag $repository $tag $app_name $app_name_in_url $POSTGRES_ENABLED $POSTGRES_HOST $POSTGRES_USER $POSTGRES_PASSWORD $POSTGRES_DB $POSTGRES_VERSION $POSTGRES_SIZE $DATABASE_URL' < tmp-auto-deploy-values.yaml > auto-deploy-values.yaml
+        envsubst '$repo_url $ref_name $kube_ingress_base_domain $public_url $service_id $docker_tag $repository $tag $app_name $app_name_in_url $POSTGRES_ENABLED $POSTGRES_HOST $POSTGRES_USER $POSTGRES_PASSWORD $POSTGRES_DB $POSTGRES_VERSION $POSTGRES_SIZE $DATABASE_URL $DEPLOY_DATABASE' < tmp-auto-deploy-values.yaml > auto-deploy-values.yaml
     - name: Prepare environment variables as K8s secret
       env:
         SECRETS_CONTEXT: ${{ toJson(secrets) }}
         VARS_CONTEXT: ${{ toJson(vars) }}        
       run: |
-        secret_name=$(echo -n "${{ inputs.APP_NAME }}" | tr '[:upper:]' '[:lower:]')
+        secret_name=$(echo -n "${{ inputs.APP_NAME }}" | tr '[:upper:]' '[:lower:]' | tr '_' '-' )
         cat > secrets.yaml <<EOF
         apiVersion: v1
         kind: Secret
@@ -284,7 +284,7 @@ jobs:
         then chart="caller/chart"
         else chart=".github/auto-deploy-app"
         fi
-        release_name=$(echo -n "${{ inputs.APP_NAME }}" | tr '[:upper:]' '[:lower:]')
+        release_name=$(echo -n "${{ inputs.APP_NAME }}" | tr '[:upper:]' '[:lower:]' | tr '_' '-' )
         helm upgrade $release_name \
           --values auto-deploy-values.yaml --install --atomic --wait \
           --set application.database_url="$DATABASE_URL" \
