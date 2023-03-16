@@ -284,7 +284,8 @@ jobs:
         then chart="caller/chart"
         else chart=".github/auto-deploy-app"
         fi
-        helm upgrade ${{ inputs.APP_NAME }} \
+        release_name=$(echo -n "${{ inputs.APP_NAME }}" | tr '[:upper:]' '[:lower:]')
+        helm upgrade $release_name \
           --values auto-deploy-values.yaml --install --atomic --wait \
           --set application.database_url="$DATABASE_URL" \
           --set application.secretName="${{ inputs.APP_NAME }}" ${{ secrets.HELM_UPGRADE_EXTRA_ARGS || vars.HELM_UPGRADE_EXTRA_ARGS }} \
