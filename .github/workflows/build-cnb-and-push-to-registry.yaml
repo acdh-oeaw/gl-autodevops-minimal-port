@@ -37,6 +37,9 @@ jobs:
   build_and_push_to_registry:
     runs-on: ubuntu-22.04
     environment: ${{ inputs.environment }}
+    permissions:
+      packages: write
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v3

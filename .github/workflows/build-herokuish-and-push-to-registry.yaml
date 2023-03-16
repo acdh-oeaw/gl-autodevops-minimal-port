@@ -43,6 +43,9 @@ on:
     types: [run]
 jobs:
   build_and_push_to_registry:
+    permissions:
+      packages: write
+      contents: read
     runs-on: ubuntu-22.04
     environment: ${{ inputs.environment }}
     steps:

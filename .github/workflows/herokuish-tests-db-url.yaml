@@ -58,6 +58,9 @@ jobs:
   test:
     runs-on: ubuntu-22.04
     environment: ${{ inputs.environment }}
+    permissions:
+      packages: write
+      contents: read
     steps:
       - name: checkout
         uses: actions/checkout@v3
