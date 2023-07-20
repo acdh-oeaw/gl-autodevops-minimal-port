@@ -61,7 +61,7 @@ jobs:
           else
             echo "environment=review/${{ github.ref_name }}"
             echo "environment=review/${{ github.ref_name }}" >> $GITHUB_OUTPUT
-            echo "environment_short=$(echo -n ${{ github.ref_name }} | sed s/feature_// | tr '_' '-' | tr '[:upper:]' '[:lower:]' )" >> $GITHUB_OUTPUT
+            echo "environment_short=$(echo -n ${{ github.ref_name }} | sed 's/feature[_/]//' | tr '_' '-' | tr '[:upper:]' '[:lower:]' )" >> $GITHUB_OUTPUT
           fi
   _1:
     needs: [setup_workflow_env]
@@ -91,7 +91,7 @@ jobs:
       submodules: ${{ needs.setup_workflow_env.outputs.submodules }}
   _3:
     needs: [setup_workflow_env, _1, _2]
-    uses: acdh-oeaw/gl-autodevops-minimal-port/.github/workflows/deploy-cluster-2.yml@main
+    uses: acdh-oeaw/gl-autodevops-minimal-port/.github/workflows/deploy.yml@main
     secrets: inherit
 # if you run this outside of acdh-oeaw yo uneed to specify every secret you want to pass by name
 #      KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
