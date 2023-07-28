@@ -218,7 +218,7 @@ jobs:
         EOF
         fi        
         kube_ingress_base_domain="${{ inputs.C2_KUBE_INGRESS_BASE_DOMAIN || vars.C2_KUBE_INGRESS_BASE_DOMAIN || vars.KUBE_INGRESS_BASE_DOMAIN }}"
-        environment_short=$(echo -n ${{ github.ref_name }} | sed 's/feature[_/]//' | tr '_' '-' | tr '[:upper:]' '[:lower:]' | cut -c1-24)"
+        environment_short="$(echo -n ${{ github.ref_name }} | sed 's/feature[_/]//' | tr '_' '-' | tr '[:upper:]' '[:lower:]' | cut -c1-24)"
         public_url="${{ inputs.PUBLIC_URL || vars.PUBLIC_URL }}"
         if [ "${public_url}x" == 'x' ]
         then public_url=https://${environment_short}.${kube_ingress_base_domain}
