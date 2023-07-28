@@ -224,7 +224,7 @@ jobs:
         then public_url=https://${environment_short}.${kube_ingress_base_domain}
         fi
         repo_url="${{ github.repositoryUrl }}" \
-        ref_name=$(echo -n "${{ github.ref_name }}" | tr '/' '-' | tr '_' '-' | tr '[:upper:]' '[:lower:]' | cut -c1-24 | sed 's:~-*$~~') \
+        ref_name=$(echo -n "${{ github.ref_name }}" | tr '/' '-' | tr '_' '-' | tr '[:upper:]' '[:lower:]' | cut -c1-24 | sed 's~-*$~~') \
         environment_short="$environment_short" \
         kube_ingress_base_domain="${{ inputs.C2_KUBE_INGRESS_BASE_DOMAIN || secrets.C2_KUBE_INGRESS_BASE_DOMAIN || vars.C2_KUBE_INGRESS_BASE_DOMAIN || vars.KUBE_INGRESS_BASE_DOMAIN }}" \
         public_url="$public_url" \
