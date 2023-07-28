@@ -218,13 +218,13 @@ jobs:
         EOF
         fi        
         kube_ingress_base_domain="${{ inputs.KUBE_INGRESS_BASE_DOMAIN || vars.KUBE_INGRESS_BASE_DOMAIN }}"
-        environment_short="$(echo -n ${{ github.ref_name }} | sed 's/feature[_/]//' | tr '_' '-' | tr '[:upper:]' '[:lower:]' | cut -c1-24)"
+        environment_short="$(echo -n ${{ github.ref_name }} | sed 's/feature[_/]//' | tr '_' '-' | tr '[:upper:]' '[:lower:]' | cut -c1-24 | sed 's~-*$~~')"
         public_url="${{ inputs.PUBLIC_URL || vars.PUBLIC_URL }}"
         if [ "${public_url}x" == 'x' ]
         then public_url=https://${environment_short}.${kube_ingress_base_domain}
         fi
         repo_url="${{ github.repositoryUrl }}" \
-        ref_name=$(echo -n "${{ github.ref_name }}" | tr '/' '-' | tr '_' '-' | tr '[:upper:]' '[:lower:]' | cut -c1-24) \
+        ref_name=$(echo -n "${{ github.ref_name }}" | tr '/' '-' | tr '_' '-' | tr '[:upper:]' '[:lower:]' | cut -c1-24 | sed 's:~*$~~') \
         environment_short="$environment_short" \
         kube_ingress_base_domain="${{ inputs.KUBE_INGRESS_BASE_DOMAIN || secrets.KUBE_INGRESS_BASE_DOMAIN || vars.KUBE_INGRESS_BASE_DOMAIN }}" \
         public_url="$public_url" \
@@ -291,7 +291,7 @@ jobs:
         then chart="caller/chart"
         else chart=".github/auto-deploy-app"
         fi
-        release_name=$(echo -n "${{ inputs.APP_NAME }}" | tr '[:upper:]' '[:lower:]' | tr '_' '-' | cut -c1-24 ) 
+        release_name=$(echo -n "${{ inputs.APP_NAME }}" | tr '[:upper:]' '[:lower:]' | tr '_' '-' | cut -c1-24 | sed 's~-*$~~') 
         helm upgrade $release_name \
           --values auto-deploy-values.yaml --install --atomic --wait \
           --set application.database_url="$DATABASE_URL" \
