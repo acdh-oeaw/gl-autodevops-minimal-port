@@ -216,18 +216,25 @@ jobs:
           scheme: "HTTP"
           probeType: "httpGet"
         EOF
+        fi        
+        kube_ingress_base_domain="${{ inputs.C2_KUBE_INGRESS_BASE_DOMAIN || vars.C2_KUBE_INGRESS_BASE_DOMAIN || vars.KUBE_INGRESS_BASE_DOMAIN }}"
+        environment_short=$(echo -n ${{ github.ref_name }} | sed 's/feature[_/]//' | tr '_' '-' | tr '[:upper:]' '[:lower:]' | cut -c1-24)"
+        public_url="${{ inputs.PUBLIC_URL || vars.PUBLIC_URL }}"
+        if [ "${public_url}x" == 'x' ]
+        then public_url=https://${environment_short}.${kube_ingress_base_domain}
         fi
         repo_url="${{ github.repositoryUrl }}" \
-        ref_name=$(echo -n "${{ github.ref_name }}" | tr '/' '-' | tr '_' '-' | tr '[:upper:]' '[:lower:]' ) \
+        ref_name=$(echo -n "${{ github.ref_name }}" | tr '/' '-' | tr '_' '-' | tr '[:upper:]' '[:lower:]' | cut -c1-24) \
+        environment_short="$environment_short" \
         kube_ingress_base_domain="${{ inputs.C2_KUBE_INGRESS_BASE_DOMAIN || secrets.C2_KUBE_INGRESS_BASE_DOMAIN || vars.C2_KUBE_INGRESS_BASE_DOMAIN || vars.KUBE_INGRESS_BASE_DOMAIN }}" \
-        public_url="${{ inputs.PUBLIC_URL || vars.PUBLIC_URL }}" \
+        public_url="$public_url" \
         service_id="${{ inputs.SERVICE_ID || vars.SERVICE_ID }}" \
         docker_tag="${{ steps.meta.outputs.tags }}" \
         repository=${docker_tag/:*/} \
         tag=${docker_tag/*:/} \
         app_name="${{ inputs.APP_NAME }}" \
         app_name_in_url=$(echo -n "${app_name// /-}" | tr '_' '-' | tr '[:upper:]' '[:lower:]' ) \
-        envsubst '$repo_url $ref_name $kube_ingress_base_domain $public_url $service_id $docker_tag $repository $tag $app_name $app_name_in_url $POSTGRES_ENABLED $POSTGRES_HOST $POSTGRES_USER $POSTGRES_PASSWORD $POSTGRES_DB $POSTGRES_VERSION $POSTGRES_SIZE $DATABASE_URL $DEPLOY_DATABASE' < tmp-auto-deploy-values.yaml > auto-deploy-values.yaml
+        envsubst '$repo_url $ref_name $environment_short $kube_ingress_base_domain $public_url $service_id $docker_tag $repository $tag $app_name $app_name_in_url $POSTGRES_ENABLED $POSTGRES_HOST $POSTGRES_USER $POSTGRES_PASSWORD $POSTGRES_DB $POSTGRES_VERSION $POSTGRES_SIZE $DATABASE_URL $DEPLOY_DATABASE' < tmp-auto-deploy-values.yaml > auto-deploy-values.yaml
     - name: Prepare environment variables as K8s secret
       env:
         SECRETS_CONTEXT: ${{ toJson(secrets) }}
