@@ -13,8 +13,7 @@ spec:
   template:
     metadata:
       labels:
-        app: {{ template "appname" . }}
-        release: {{ .Release.Name }}
+{{ include "sharedlabels" . | indent 8 }}
     spec:
       restartPolicy: Never
       imagePullSecrets:

@@ -1190,3 +1190,44 @@ func TestDeploymentTemplateWithExtraEnvFrom(t *testing.T) {
 		})
 	}
 }
+
+func TestDeploymentTemplateWithExtraEnv(t *testing.T) {
+	releaseName := "deployment-with-extra-env-test"
+	templates := []string{"templates/deployment.yaml"}
+
+	tcs := []struct {
+		name        string
+		values      map[string]string
+		expectedEnv coreV1.EnvVar
+	}{
+		{
+			name: "with extra env secret test",
+			values: map[string]string{
+				"extraEnv[0].name":  "env-name-test",
+				"extraEnv[0].value": "test-value",
+			},
+			expectedEnv: coreV1.EnvVar{
+				Name:  "env-name-test",
+				Value: "test-value",
+			},
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			opts := &helm.Options{
+				SetValues: tc.values,
+			}
+			output, err := helm.RenderTemplateE(t, opts, helmChartPath, releaseName, templates)
+
+			if err != nil {
+				t.Error(err)
+				return
+			}
+
+			deployment := new(appsV1.Deployment)
+			helm.UnmarshalK8SYaml(t, output, deployment)
+			require.Contains(t, deployment.Spec.Template.Spec.Containers[0].Env, tc.expectedEnv)
+		})
+	}
+}

@@ -52,7 +52,7 @@ hpa:
   maxReplicas: 5
   # Only one of targetCPUUtilizationPercentage and metrics can be chosen.
   # This is because targetCPUUtilizationPercentage is from autoscaling/v1,
-  # whereas metrics is from autoscaling/v2beta2. If both are provided, only
+  # whereas metrics is from autoscaling/v2. If both are provided, only
   # metrics will be used.
   # See https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/
   # for examples of each.
@@ -104,6 +104,7 @@ ingress:
 prometheus:
   metrics: false
 livenessProbe:
+  enabled: true
   path: "/"
   initialDelaySeconds: 15
   timeoutSeconds: 15
@@ -111,6 +112,7 @@ livenessProbe:
   probeType: "httpGet"
   httpHeaders: []
 readinessProbe:
+  enabled: true
   path: "/"
   initialDelaySeconds: 5
   timeoutSeconds: 3
@@ -213,6 +215,10 @@ extraEnvFrom: []
 # - secretRef:
 #     name: {{ .Values.application.secretName }}
 
+extraEnv: []
+# - name:  ENV_VAR
+#   value: ENV_VAL
+
 workers: {}
   # worker:
   #   replicaCount: 1
@@ -293,3 +299,27 @@ cronjobs: {}
   #   extraVolumes: []
   #   extraVolumeMounts: []
   #   extraEnvFrom: []
+
+# customResources:
+#   - apiVersion: "traefik.containo.us/v1alpha1"
+#     kind: "IngressRoute"
+#     metadata:
+#       name: "ingress-route"
+#       namespace: "default"
+#     spec:
+#       entryPoints:
+#         - "web"
+#       routes:
+#         - match: "Host(`{{ .Values.envName }}.{{ .Values.envURL }}`)"
+#           kind: "Rule"
+#           services:
+#             - name: "web"
+#               port: {{ .Values.service.internalPort }}
+#               weight: 100
+#       tls:
+#         secretName: "tls-secret"
+#         options:
+#           name: "tls-options"
+#           namespace: "default"
+#           kind: "TLSOptions"
+#           minVersion: "VersionTLS12"

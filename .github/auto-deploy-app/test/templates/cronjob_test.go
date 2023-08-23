@@ -101,7 +101,7 @@ func TestCronjobMeta(t *testing.T) {
 				require.Equal(t, map[string]string{
 					"app":     tc.ExpectedName,
 					"release": tc.ExpectedRelease,
-					"tier":    "web",
+					"tier":    "cronjob",
 					"track":   "stable",
 				}, cronjob.Spec.JobTemplate.Spec.Template.Labels)
 			}

@@ -44,7 +44,7 @@
 | hpa.minReplicas               |             | `1`                                |
 | hpa.maxReplicas               |             | `5`                                |
 | hpa.targetCPUUtilizationPercentage | `autoscaling/v1` - Percentage threshold for when HPA begins scaling out pods. Ignored if `hpa.metrics` is present. | `nil` |
-| hpa.metrics                   | `autoscaling/v2beta2`  [metrics](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/) definitions for when HPA begins scaling out pods.  | `nil` |
+| hpa.metrics                   | `autoscaling/v2`  [metrics](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/) definitions for when HPA begins scaling out pods.  | `nil` |
 | gitlab.app                    | GitLab project slug. | `nil` |
 | gitlab.env                    | GitLab environment slug. | `nil` |
 | gitlab.envName                | GitLab environment name. | `nil` |
@@ -76,6 +76,7 @@
 | ingress.modSecurity.secRuleEngine | Configuration for [ModSecurity's rule engine](https://github.com/SpiderLabs/ModSecurity/wiki/Reference-Manual-(v2.x)#SecRuleEngine) | `DetectionOnly` |
 | ingress.modSecurity.secRules | Configuration for custom [ModSecurity's rules](https://github.com/SpiderLabs/ModSecurity/wiki/Reference-Manual-(v2.x)#secrule) | `nil` |
 | ingress.annotations           | Ingress annotations | See [`_ingress-annotations.yaml`](./templates/_ingress-annotations.yaml) |
+| livenessProbe.enabled         | If true, enables liveness probe. | `/`                                |
 | livenessProbe.path            | Path to access on the HTTP server on periodic probe of container liveness. | `/`                                |
 | livenessProbe.scheme          | Scheme to access the HTTP server (HTTP or HTTPS). | `HTTP`                                |
 | livenessProbe.httpHeaders       | List of additional custom headers to send on the server | `[]`                                |
@@ -85,6 +86,7 @@
 | livenessProbe.timeoutSeconds  | # of seconds after which the liveness probe times out. | `15`                               |
 | livenessProbe.probeType       | Type of [liveness probe](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes) to use. | `httpGet`
 | livenessProbe.command         | Commands for use with probe type 'exec'. | `{}`
+| readinessProbe.enabled         | If true, enables readiness probe. | `/`                                |
 | readinessProbe.path           | Path to access on the HTTP server on periodic probe of container readiness. | `/`                                |
 | readinessProbe.scheme         | Scheme to access the HTTP server (HTTP or HTTPS). | `HTTP`                                |
 | readinessProbe.httpHeaders      | List of additional custom headers to send on the server | `[]`                                |
@@ -134,4 +136,5 @@
 | cronjob.job.livenessProbe           | If defined, enables livenessProbe in the cronjob. If not defined, it uses top-level `livenessProbe` setting to the job. (To see details about the default probes check values.yaml) | |
 | cronjob.job.readinessProbe           | If defined, enables readinessProbe in the cronjob. If not defined, it uses top-level `readinessProbe` setting to the job. (To see details about the default probes check values.yaml) | |
 | cronjob.activeDeadlineSeconds           | Alternative to terminate a Job: Once a Job reaches `activeDeadlineSeconds` value, all of its running Pods are terminated and the Job status will become `type: Failed` with `reason: DeadlineExceeded` | `nil` |
+| customResources | This field allows to add custom resources to your Deployment. | `[]` |
 

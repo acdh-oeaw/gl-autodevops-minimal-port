@@ -90,3 +90,12 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- $merged := deepCopy $custom | mergeOverwrite $defaults -}}
 {{- $merged | toYaml -}}
 {{- end -}}
+
+{{- define "appurls" -}}
+{{ printf "%s%s" .Values.service.url .Values.ingress.path }}
+{{- if .Values.service.additionalHosts }}
+{{- range $host := .Values.service.additionalHosts }}
+{{ if $.Values.ingress.tls.enabled }}https://{{ else }}http://{{ end }}{{ printf "%s%s" $host $.Values.ingress.path }}
+{{- end -}}
+{{- end -}}
+{{- end -}}

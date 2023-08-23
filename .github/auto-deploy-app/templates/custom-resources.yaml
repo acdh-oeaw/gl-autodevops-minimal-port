@@ -1,0 +1,3 @@
+{{- range .Values.customResources }}
+{{- toYaml . | nindent 0 }}
+{{- end }}

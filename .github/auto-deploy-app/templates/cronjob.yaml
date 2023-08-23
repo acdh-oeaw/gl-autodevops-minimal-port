@@ -45,7 +45,7 @@ items:
               app: {{ template "appname" $ }}
               release: {{ $.Release.Name }}
               track: "{{ $.Values.application.track }}"
-              tier: "{{ $.Values.application.tier }}"
+              tier: cronjob
           spec:
             imagePullSecrets:
               {{ toYaml $.Values.image.secrets | nindent 14 }}

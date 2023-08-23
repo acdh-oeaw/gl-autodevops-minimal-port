@@ -8,7 +8,7 @@ import (
 	"github.com/gruntwork-io/terratest/modules/helm"
 	"github.com/stretchr/testify/require"
 	autoscalingV1 "k8s.io/api/autoscaling/v1"
-	autoscalingV2Beta2 "k8s.io/api/autoscaling/v2beta2"
+	autoscalingV2 "k8s.io/api/autoscaling/v2"
 )
 
 func TestHPA_AutoscalingV1(t *testing.T) {
@@ -63,7 +63,7 @@ func TestHPA_AutoscalingV1(t *testing.T) {
 	}
 }
 
-func TestHPA_AutoscalingV2beta2(t *testing.T) {
+func TestHPA_AutoscalingV2(t *testing.T) {
 	templates := []string{"templates/hpa.yaml"}
 	releaseName := "hpa-test"
 
@@ -128,7 +128,7 @@ resources:
 				return
 			}
 
-			hpa := new(autoscalingV2Beta2.HorizontalPodAutoscaler)
+			hpa := new(autoscalingV2.HorizontalPodAutoscaler)
 			helm.UnmarshalK8SYaml(t, output, hpa)
 			require.Equal(t, tc.expectedName, hpa.ObjectMeta.Name)
 			require.Equal(t, tc.expectedMinReplicas, *hpa.Spec.MinReplicas)

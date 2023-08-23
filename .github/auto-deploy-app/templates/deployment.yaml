@@ -117,6 +117,9 @@ spec:
 {{- end }}
         {{- end }}
         env:
+{{- if .Values.extraEnv }}
+{{ toYaml .Values.extraEnv | indent 8 }}
+{{- end }}
 {{- if .Values.postgresql.managed }}
         - name: POSTGRES_USER
           valueFrom:
@@ -158,6 +161,7 @@ spec:
           {{- end }}
 {{- end }}
 {{- end }}
+{{- if .Values.livenessProbe.enabled }}
         livenessProbe:
 {{- if eq .Values.livenessProbe.probeType "httpGet" }}
           httpGet:
@@ -181,6 +185,8 @@ spec:
 {{- end }}
           initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
           timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+{{- end }}
+{{- if .Values.readinessProbe.enabled }}
         readinessProbe:
 {{- if eq .Values.readinessProbe.probeType "httpGet" }}
           httpGet:
@@ -204,6 +210,7 @@ spec:
 {{- end }}
           initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
           timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+{{- end }}
 {{- if .Values.startupProbe.enabled }}
         startupProbe:
 {{- if eq .Values.startupProbe.probeType "httpGet" }}

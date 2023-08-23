@@ -1,6 +1,6 @@
 {{- if and .Values.hpa.enabled .Values.resources.requests -}}
 {{- if .Values.hpa.metrics }}
-apiVersion: autoscaling/v2beta2
+apiVersion: autoscaling/v2
 {{- else }}
 apiVersion: autoscaling/v1
 {{- end }}
