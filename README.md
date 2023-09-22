@@ -39,6 +39,9 @@ jobs:
 # E. g. ACDH-OEAW/OpenAtlas-Discovery -> acdh-oeaw/openatlas-discovery
       registry_root: ghcr.io/${{ github.repository }}/
       default_port: "5000"
+# Usually you don't deal with all commits since the repository was created.
+# Increase if you e.g don't find a tag you want to display in the application
+      fetch-depth: 10
       submodules: "true"
 #      herokuish_base_image: ghcr.io/acdh-oeaw/herokuish-for-cypress/main:latest-22
       APP_NAME: your-app-name
@@ -91,6 +94,7 @@ jobs:
       image_name: ${{ needs.setup_workflow_env.outputs.image_name }}
       source_image: ${{ needs.setup_workflow_env.outputs.source_image }}
       default_port: ${{ needs.setup_workflow_env.outputs.default_port }}
+      fetch-depth: ${{ needs.setup_workflow_env.outputs.fetch-depth }}
       submodules: ${{ needs.setup_workflow_env.outputs.submodules }}
   _2:
     needs: [setup_workflow_env]
@@ -103,6 +107,7 @@ jobs:
       image_name: ${{ needs.setup_workflow_env.outputs.image_name }}
       source_image: ${{ needs.setup_workflow_env.outputs.source_image }}
       default_port: ${{ needs.setup_workflow_env.outputs.default_port }}
+      fetch-depth: ${{ needs.setup_workflow_env.outputs.fetch-depth }}
       herokuish_base_image: ${{ needs.setup_workflow_env.outputs.herokuish_base_image }}
       POSTGRES_ENABLED: ${{ needs.setup_workflow_env.outputs.POSTGRES_ENABLED }}
       submodules: ${{ needs.setup_workflow_env.outputs.submodules }}
@@ -119,6 +124,7 @@ jobs:
 #      K8S_SECRET_A_VAR_NAME: ${{  }}
     with:
       environment: ${{ needs.setup_workflow_env.outputs.environment}}
+      fetch-depth: ${{ needs.setup_workflow_env.outputs.fetch-depth }}
       DOCKER_TAG: ${{ needs.setup_workflow_env.outputs.registry_root }}${{ needs.setup_workflow_env.outputs.image_name }}
       APP_NAME: ${{ needs.setup_workflow_env.outputs.APP_NAME }}-${{ needs.setup_workflow_env.outputs.environment_short }}
       APP_ROOT: ${{ needs.setup_workflow_env.outputs.APP_ROOT }}
