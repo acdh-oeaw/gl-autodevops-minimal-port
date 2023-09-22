@@ -13,9 +13,6 @@ on:
       image_name:
         required: false
         type: string
-      source_image:
-        required: true
-        type: string
       default_port:
         required: true
         type: string
