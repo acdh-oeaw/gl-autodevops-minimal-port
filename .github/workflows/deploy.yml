@@ -53,6 +53,10 @@ on:
         required: false
         type: string
         default: '5000'
+      fetch-depth:
+        required: false
+        type: number
+        default: 0
       submodules:
         required: false
         type: string
@@ -95,12 +99,12 @@ jobs:
       name: ${{ inputs.environment }}
       url: ${{ inputs.PUBLIC_URL || vars.PUBLIC_URL }}
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       name: Checkout gl-autodevops-minimal
       with:
         repository: ${{ github.repository_owner }}/gl-autodevops-minimal-port
 # This step will have access to the sources of the caller in a sub directory!
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       name: Checkout
       with:
         path: caller
@@ -119,7 +123,7 @@ jobs:
         kubectl get pod
     - name: Create tags based on git data
       id: meta
-      uses: docker/metadata-action@v4
+      uses: docker/metadata-action@v5
       with:
         images: |
           ${{ inputs.DOCKER_TAG }}
