@@ -64,7 +64,7 @@ jobs:
           else
             echo "environment=review/${{ github.ref_name }}"
             echo "environment=review/${{ github.ref_name }}" >> $GITHUB_OUTPUT
-            echo "environment_short=$(echo -n ${{ github.ref_name }} | sed 's/feature[_/]//' | tr '_' '-' | tr '[:upper:]' '[:lower:]' | cut -c1-24 | sed 's/-*$//' )" >> $GITHUB_OUTPUT
+            echo "environment_short=$(echo -n ${{ github.ref_name }} | sed 's/feat\(ure\)\{0,1\}[_/]//' | tr '_' '-' | tr '[:upper:]' '[:lower:]' )" >> $GITHUB_OUTPUT
           fi
   generate_workflow_vars:
     needs: [setup_workflow_env]
@@ -94,7 +94,7 @@ jobs:
       image_name: ${{ needs.setup_workflow_env.outputs.image_name }}
       source_image: ${{ needs.setup_workflow_env.outputs.source_image }}
       default_port: ${{ needs.setup_workflow_env.outputs.default_port }}
-      fetch-depth: ${{ needs.setup_workflow_env.outputs.fetch-depth }}
+      fetch-depth: ${{ fromJson(needs.setup_workflow_env.outputs.fetch-depth) }}
       submodules: ${{ needs.setup_workflow_env.outputs.submodules }}
   _2:
     needs: [setup_workflow_env]
@@ -106,7 +106,7 @@ jobs:
       registry_root: ${{ needs.setup_workflow_env.outputs.registry_root }}
       image_name: ${{ needs.setup_workflow_env.outputs.image_name }}
       default_port: ${{ needs.setup_workflow_env.outputs.default_port }}
-      fetch-depth: ${{ needs.setup_workflow_env.outputs.fetch-depth }}
+      fetch-depth: ${{ fromJson(needs.setup_workflow_env.outputs.fetch-depth) }}
       herokuish_base_image: ${{ needs.setup_workflow_env.outputs.herokuish_base_image }}
       POSTGRES_ENABLED: ${{ needs.setup_workflow_env.outputs.POSTGRES_ENABLED }}
       submodules: ${{ needs.setup_workflow_env.outputs.submodules }}
@@ -123,12 +123,12 @@ jobs:
 #      K8S_SECRET_A_VAR_NAME: ${{  }}
     with:
       environment: ${{ needs.setup_workflow_env.outputs.environment}}
-      fetch-depth: ${{ needs.setup_workflow_env.outputs.fetch-depth }}
+      fetch-depth: ${{ fromJson(needs.setup_workflow_env.outputs.fetch-depth) }}
       DOCKER_TAG: ${{ needs.setup_workflow_env.outputs.registry_root }}${{ needs.setup_workflow_env.outputs.image_name }}
       APP_NAME: ${{ needs.setup_workflow_env.outputs.APP_NAME }}-${{ needs.setup_workflow_env.outputs.environment_short }}
       APP_ROOT: ${{ needs.setup_workflow_env.outputs.APP_ROOT }}
       SERVICE_ID: ${{ needs.setup_workflow_env.outputs.SERVICE_ID }}
-      PUBLIC_URL: ${{ needs.setup_workflow_env.outputs.PUBLIC_URL }}
+      PUBLIC_URL: ${{ needs.generate_workflow_vars.outputs.PUBLIC_URL }}
       POSTGRES_ENABLED: ${{ needs.setup_workflow_env.outputs.POSTGRES_ENABLED == 'true'}}
       default_port: "${{ needs.setup_workflow_env.outputs.default_port}}"
       submodules: ${{ needs.setup_workflow_env.outputs.submodules }}
