@@ -44,7 +44,11 @@ on:
       POSTGRES_ENABLED:
         required: false
         type: string
-        default: "true"
+        default: "false"
+      POSTGRES_VERSION:
+        required: false
+        type: string
+        default: "11.21"
       environment:
         required: false
         type: string
@@ -105,7 +109,7 @@ jobs:
         name: Set up a test database container
         run: |
            # The following service is isolated from the internet
-           docker run -d --name postgres --network test-services -p 5432:5432 -e POSTGRES_DB=${{ inputs.POSTGRES_DB }} -e POSTGRES_USER=${{ inputs.POSTGRES_USER }} -e POSTGRES_PASSWORD=${{ inputs.PGPASSWORD }} postgres:9.6.16
+           docker run -d --name postgres --network test-services -p 5432:5432 -e POSTGRES_DB=${{ inputs.POSTGRES_DB }} -e POSTGRES_USER=${{ inputs.POSTGRES_USER }} -e POSTGRES_PASSWORD=${{ inputs.PGPASSWORD }} postgres:${{ inputs.POSTGRES_VERSION }}-alpine
            cat > psql-test.sh <<EOF
            export PGPASSWORD=${{ inputs.PGPASSWORD }}
            run=1
