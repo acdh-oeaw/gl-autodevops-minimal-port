@@ -30,6 +30,10 @@ on:
         required: false
         type: string
         default: 'false'
+      PUBLIC_URL:
+        required: false
+        type: string
+        default: ''
   workflow_dispatch: {}
   repository_dispatch:
     types: [run]
@@ -77,9 +81,15 @@ jobs:
         env:
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
           VARS_CONTEXT: ${{ toJson(vars) }}
+          PUBLIC_URL: ${{ inputs.PUBLIC_URL }}
         run: |
           echo -n "$SECRETS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("K8S_SECRET_"))]|map("\(.key|sub("K8S_SECRET_"; ""))=\(.value|tostring)")|.[]' > secrets.env
           echo -n "$VARS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("K8S_SECRET_"))]|map("\(.key|sub("K8S_SECRET_"; ""))=\(.value|tostring)")|.[]' >> secrets.env
+          echo -n "$VARS_CONTEXT" | jq -r '[to_entries[]|select(.key == "SERVICE_ID")]|map("\(.key)=\(.value|tostring)")|.[]' >> secrets.env
+          if [ "${PUBLIC_URL}x" == "x" ]
+          then echo -n "$VARS_CONTEXT" | jq -r '[to_entries[]|select(.key == "PUBLIC_URL")]|map("\(.key)=\(.value|tostring)")|.[]' >> secrets.env
+          else echo "PUBLIC_URL=$PUBLIC_URL" >> secrets.env 
+          fi
           echo -n "$SECRETS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("LC_K8S_SECRET_"))]|map("\(.key|sub("LC_K8S_SECRET_"; "")|ascii_downcase)=\(.value|tostring)")|.[]' >> secrets.env
           echo -n "$VARS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("LC_K8S_SECRET_"))]|map("\(.key|sub("LC_K8S_SECRET_"; "")|ascii_downcase)=\(.value|tostring)")|.[]' >> secrets.env
           pack build ${{ inputs.registry_root }}${{ inputs.image_tagged || inputs.image_name }}/source --env-file secrets.env --builder heroku/builder:22 \

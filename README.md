@@ -94,6 +94,7 @@ jobs:
       image_name: ${{ needs.setup_workflow_env.outputs.image_name }}
       source_image: ${{ needs.setup_workflow_env.outputs.source_image }}
       default_port: ${{ needs.setup_workflow_env.outputs.default_port }}
+      PUBLIC_URL: ${{ needs.generate_workflow_vars.outputs.PUBLIC_URL }}
       fetch-depth: ${{ fromJson(needs.setup_workflow_env.outputs.fetch-depth) }}
       submodules: ${{ needs.setup_workflow_env.outputs.submodules }}
   _2:
@@ -109,6 +110,7 @@ jobs:
       fetch-depth: ${{ fromJson(needs.setup_workflow_env.outputs.fetch-depth) }}
       herokuish_base_image: ${{ needs.setup_workflow_env.outputs.herokuish_base_image }}
       POSTGRES_ENABLED: ${{ needs.setup_workflow_env.outputs.POSTGRES_ENABLED }}
+      PUBLIC_URL: ${{ needs.generate_workflow_vars.outputs.PUBLIC_URL }}
       submodules: ${{ needs.setup_workflow_env.outputs.submodules }}
   _3:
     needs: [setup_workflow_env, generate_workflow_vars, _1, _2]
