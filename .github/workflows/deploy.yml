@@ -255,11 +255,16 @@ jobs:
         EOF
         k8s_secrets="$(echo -n "$SECRETS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("K8S_SECRET_"))]|map("  \(.key|sub("K8S_SECRET_"; "")): \(.value|tostring|@base64)")|.[]')"
         k8s_vars="$(echo -n "$VARS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("K8S_SECRET_"))]|map("  \(.key|sub("K8S_SECRET_"; "")): \(.value|tostring|@base64)")|.[]')"
+        k8s_service_id="$(echo -n "$VARS_CONTEXT" | jq -r '[to_entries[]|select(.key == "SERVICE_ID")]|map("  \(.key): \(.value|tostring|@base64)")|.[]')"
+        if [ "${PUBLIC_URL}x" == "x" ]
+        then k8s_public_url="$(echo -n "$VARS_CONTEXT" | jq -r '[to_entries[]|select(.key == "PUBLIC_URL")]|map("  \(.key): \(.value|tostring|@base64)")|.[]')"
+        else k8s_public_url="  PUBLIC_URL: $(echo -n $PUBLIC_URL|base64)"
+        fi
         k8s_secrets_lc="$(echo -n "$SECRETS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("LC_K8S_SECRET_"))]|map("  \(.key|sub("LC_K8S_SECRET_"; "")|ascii_downcase): \(.value|tostring|@base64)")|.[]')"
         k8s_vars_lc="$(echo -n "$VARS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("LC_K8S_SECRET_"))]|map("  \(.key|sub("LC_K8S_SECRET_"; "")|ascii_downcase): \(.value|tostring|@base64)")|.[]')"
-        if [ "$k8s_secrets$k8s_vars$k8s_secrets_lc$k8s_vars_lc$POSTGRES_HOST$DATABASE_URL$DEPLOY_DATABASE"x == 'x' ]
+        if [ "$k8s_secrets$k8s_vars$$k8s_service_id$k8s_public_urlk8s_secrets_lc$k8s_vars_lc$POSTGRES_HOST$DATABASE_URL$DEPLOY_DATABASE"x == 'x' ]
         then echo ' {}' >> secrets.yaml
-        else printf "$k8s_secrets\n$k8s_vars\n$k8s_secrets_lc\n$k8s_vars_lc\n" >> secrets.yaml
+        else printf "$k8s_secrets\n$k8s_vars\n$k8s_service_id\n$k8s_public_url\n$k8s_secrets_lc\n$k8s_vars_lc\n" >> secrets.yaml
         fi
         if [ "${POSTGRES_HOST}x" != "x" ]
         then POSTGRES_USER=$(echo -n "${POSTGRES_USER}" | base64 -w0)
