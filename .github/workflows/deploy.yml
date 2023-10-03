@@ -242,7 +242,8 @@ jobs:
     - name: Prepare environment variables as K8s secret
       env:
         SECRETS_CONTEXT: ${{ toJson(secrets) }}
-        VARS_CONTEXT: ${{ toJson(vars) }}        
+        VARS_CONTEXT: ${{ toJson(vars) }}
+        PUBLIC_URL: ${{ inputs.PUBLIC_URL }}       
       run: |
         secret_name=$(echo -n "${{ inputs.APP_NAME }}" | tr '[:upper:]' '[:lower:]' | tr '_' '-' )
         cat > secrets.yaml <<EOF
