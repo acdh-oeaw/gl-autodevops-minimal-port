@@ -256,7 +256,6 @@ jobs:
         EOF
         k8s_secrets="$(echo -n "$SECRETS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("K8S_SECRET_"))]|map("  \(.key|sub("K8S_SECRET_"; "")): \(.value|tostring|@base64)")|.[]')"
         k8s_vars="$(echo -n "$VARS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("K8S_SECRET_"))]|map("  \(.key|sub("K8S_SECRET_"; "")): \(.value|tostring|@base64)")|.[]')"
-        k8s_vars="$(echo -n "$VARS_CONTEXT" | jq -r '[to_entries[]|select(.key == "SERVICE_ID")]|map("  \(.key): \(.value|tostring|@base64)")|.[]')"
         k8s_service_id="$(echo -n "$VARS_CONTEXT" | jq -r '[to_entries[]|select(.key == "SERVICE_ID")]|map("  \(.key): \(.value|tostring|@base64)")|.[]')"
         if [ "${PUBLIC_URL}x" == "x" ]
         then k8s_public_url="$(echo -n "$VARS_CONTEXT" | jq -r '[to_entries[]|select(.key == "PUBLIC_URL")]|map("  \(.key): \(.value|tostring|@base64)")|.[]')"
