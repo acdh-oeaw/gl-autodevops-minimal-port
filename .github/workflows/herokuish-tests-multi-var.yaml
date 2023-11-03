@@ -158,7 +158,7 @@ jobs:
             -e POSTGRES_USER=${{ inputs.POSTGRES_USER }} \
             -e POSTGRES_PASSWORD=${{ inputs.PGPASSWORD }} \
             -e POSTGRES_HOST=postgres \
-            -e PORT=8080 \
+            -e NODE_PORT=8080 \
             -v $(pwd)/tmp/cache:/tmp/cache \
             ${{ inputs.registry_root }}tests/${{ inputs.image_tagged || inputs.image_name }}:${{ github.sha }} \
             /bin/herokuish buildpack test

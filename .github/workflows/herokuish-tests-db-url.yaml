@@ -154,7 +154,7 @@ jobs:
           docker create -t --name test-run-step \
             --env-file secrets.env \
             -e DATABASE_URL=postgres://${{ inputs.POSTGRES_USER }}:${{ inputs.PGPASSWORD }}@postgres:5432/${{ inputs.POSTGRES_DB }} \
-            -e PORT=8080 \
+            -e NODE_PORT=8080 \
             -v $(pwd)/tmp/cache:/tmp/cache \
             ${{ inputs.registry_root }}tests/${{ inputs.image_tagged || inputs.image_name }}:${{ github.sha }} \
             /bin/herokuish buildpack test
