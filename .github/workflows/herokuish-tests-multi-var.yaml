@@ -94,6 +94,7 @@ jobs:
           ENV BUILDPACK_URL=${{ inputs.BUILDPACK_URL }} \\
             USER=herokuishuser
           EOF
+          rm -f .dockerignore
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: Build and push
