@@ -11,9 +11,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Delete 'dev' containers older than a week
-        uses: snok/container-retention-policy@v1
+        uses: snok/container-retention-policy@v2
         with:
-          image-names: *
+          image-names: "*"
           cut-off: A week ago UTC
           account-type: org
           org-name: acdh-oeaw
@@ -22,9 +22,9 @@ jobs:
           token: ${{ secrets.PAT }}
 
       - name: Delete all test containers older than a month, using a wildcard
-        uses: snok/container-retention-policy@v1
+        uses: snok/container-retention-policy@v2
         with:
-          image-names: python-test*, js-test*
+          image-names: "*"
           cut-off: One month ago UTC
           account-type: org
           org-name: acdh-oeaw
