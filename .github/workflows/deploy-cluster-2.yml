@@ -259,7 +259,7 @@ jobs:
         k8s_service_id="$(echo -n "$VARS_CONTEXT" | jq -r '[to_entries[]|select(.key == "SERVICE_ID")]|map("  \(.key): \(.value|tostring|@base64)")|.[]')"
         if [ "${PUBLIC_URL}x" == "x" ]
         then k8s_public_url="$(echo -n "$VARS_CONTEXT" | jq -r '[to_entries[]|select(.key == "PUBLIC_URL")]|map("  \(.key): \(.value|tostring|@base64)")|.[]')"
-        else k8s_public_url="  PUBLIC_URL: $(echo -n $PUBLIC_URL|base64)"
+        else k8s_public_url="  PUBLIC_URL: $(echo -n $PUBLIC_URL|base64 -w0)"
         fi
         k8s_secrets_lc="$(echo -n "$SECRETS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("LC_K8S_SECRET_"))]|map("  \(.key|sub("LC_K8S_SECRET_"; "")|ascii_downcase): \(.value|tostring|@base64)")|.[]')"
         k8s_vars_lc="$(echo -n "$VARS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("LC_K8S_SECRET_"))]|map("  \(.key|sub("LC_K8S_SECRET_"; "")|ascii_downcase): \(.value|tostring|@base64)")|.[]')"
