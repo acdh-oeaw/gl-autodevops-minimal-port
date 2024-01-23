@@ -165,6 +165,7 @@ jobs:
         run: |
           mkdir -p output
           docker cp test-run-step:/app/cypress/ output > /dev/null 2>&1 || /bin/true
+          docker cp test-run-step:/app/playwright-report/ output > /dev/null 2>&1 || /bin/true
           rm secrets.env
           sudo chmod -R a+rX tmp          
       - name: Save buildpack versions
