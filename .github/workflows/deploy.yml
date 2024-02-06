@@ -308,7 +308,7 @@ jobs:
           --set application.secretName="${{ inputs.APP_NAME }}" ${{ secrets.HELM_UPGRADE_EXTRA_ARGS || vars.HELM_UPGRADE_EXTRA_ARGS }} \
         $chart  
     - name: auto-deploy-values.yaml
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: auto-deploy-values-yaml
