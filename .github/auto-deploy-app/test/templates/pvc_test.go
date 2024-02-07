@@ -71,11 +71,10 @@ func TestPvcTemplate_Single(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			output, ret := renderTemplate(t, tc.values, releaseName, templates, tc.expectedErrorRegexp)
-
-			if ret == false {
-				return
+			opts := &helm.Options{
+				SetValues:   tc.values,
 			}
+			output := mustRenderTemplate(t, opts, releaseName, templates, tc.expectedErrorRegexp)
 
 			pvc := new(coreV1.PersistentVolumeClaim)
 			helm.UnmarshalK8SYaml(t, output, pvc)
@@ -146,11 +145,10 @@ func TestPvcTemplate_Multiple(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			output, ret := renderTemplate(t, tc.values, releaseName, templates, tc.expectedErrorRegexp)
-
-			if ret == false {
-				return
+			opts := &helm.Options{
+				SetValues:   tc.values,
 			}
+			output := mustRenderTemplate(t, opts, releaseName, templates, tc.expectedErrorRegexp)
 
 			pvcList := strings.Split(output, "---")
 			for i, pvcOutput := range pvcList[1:] {

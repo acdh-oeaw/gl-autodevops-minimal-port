@@ -5,7 +5,7 @@ metadata:
   name: {{ template "fullname" . }}
   annotations:
 {{- if .Values.service.annotations }}
-{{ toYaml .Values.service.annotations | indent 4 }}
+{{- toYaml .Values.service.annotations | nindent 4 }}
 {{- end }}
 {{- if .Values.prometheus.metrics }}
     prometheus.io/scrape: "true"
@@ -25,7 +25,7 @@ spec:
     nodePort: {{ .Values.service.nodePort }}
 {{- end }}
 {{- if .Values.service.extraPorts }}
-{{ toYaml .Values.service.extraPorts | indent 2 }}
+{{- toYaml .Values.service.extraPorts | nindent 2 }}
 {{- end }}
   selector:
     app: {{ template "appname" . }}

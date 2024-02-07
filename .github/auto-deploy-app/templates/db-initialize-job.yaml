@@ -16,8 +16,10 @@ spec:
 {{ include "sharedlabels" . | indent 8 }}
     spec:
       restartPolicy: Never
+      {{- with $.Values.image.secrets }}
       imagePullSecrets:
-{{ toYaml .Values.image.secrets | indent 10 }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
       containers:
       - name: {{ .Chart.Name }}
         image: {{ template "imagename" . }}

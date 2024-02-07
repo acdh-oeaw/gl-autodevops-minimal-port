@@ -5,7 +5,7 @@
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
-  {{ $args := dict "context" $context "name" $volume.name }}
+  {{- $args := dict "context" $context "name" $volume.name }}
   name: {{ template "pvcName" $args }}
   labels:
     track: "{{ $.Values.application.track }}"
@@ -13,7 +13,7 @@ metadata:
 {{ include "sharedlabels" $context | indent 4 }}
 spec:
   accessModes:
-    - {{ $volume.claim.accessMode | quote }}
+  - {{ $volume.claim.accessMode | quote }}
   resources:
     requests:
       storage: {{ $volume.claim.size | quote }}

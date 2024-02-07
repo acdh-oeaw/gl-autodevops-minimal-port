@@ -21,9 +21,12 @@
 | extraLabels                   | Allow labelling resources with custom key/value pairs | `{}` |
 | lifecycle                     | [Container lifecycle hooks](https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/) | `{}` |
 | podAnnotations                | Pod annotations | `{}`                           |
+| hostNetwork                   | Use the host's network namespace. | `false`      |
 | dnsPolicy                     | Pod DNS policy  | `{}`                           |
 | dnsConfig                     | [Pod DNS config](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-dns-config)  | `{}` |
 | nodeSelector                  | Node labels for pod assignment | `{}`           |
+| securityContext               | SecurityContext definition for deployment | `{}`           |
+| containerSecurityContext      | SecurityContext definition for containers | `{}`           |
 | tolerations                   | List of node taints to tolerate | `[]`          |
 | priorityClassName             | Assign node [priority](https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/) from priorityClass | `""`
 | terminationGracePeriodSeconds | The amount of time in seconds a pod is given to terminate | [See the Kubernetes API for reference](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#lifecycle)          |
@@ -137,4 +140,8 @@
 | cronjob.job.readinessProbe           | If defined, enables readinessProbe in the cronjob. If not defined, it uses top-level `readinessProbe` setting to the job. (To see details about the default probes check values.yaml) | |
 | cronjob.activeDeadlineSeconds           | Alternative to terminate a Job: Once a Job reaches `activeDeadlineSeconds` value, all of its running Pods are terminated and the Job status will become `type: Failed` with `reason: DeadlineExceeded` | `nil` |
 | customResources | This field allows to add custom resources to your Deployment. | `[]` |
-
+| workers                       | Define your workers in this section, an example of the definition can be found in values.yaml | `nil` |
+| worker.image.repository       |             | `gitlab.example.com/group/project` |
+| worker.image.tag              |             | `stable`                           |
+| worker.image.pullPolicy       |             | `Always`                           |
+| worker.image.secrets          |             | `[name: gitlab-registry]`          |

@@ -8,8 +8,12 @@ items:
   metadata:
     name: {{ template "trackableappname" $ }}-{{ $workerName }}
     annotations:
-      {{ if $.Values.gitlab.app }}app.gitlab.com/app: {{ $.Values.gitlab.app | quote }}{{ end }}
-      {{ if $.Values.gitlab.env }}app.gitlab.com/env: {{ $.Values.gitlab.env | quote }}{{ end }}
+      {{- if $.Values.gitlab.app }}
+      app.gitlab.com/app: {{ $.Values.gitlab.app | quote }}
+      {{- end }}
+      {{- if $.Values.gitlab.env }}
+      app.gitlab.com/env: {{ $.Values.gitlab.env | quote }}
+      {{- end }}
     labels:
       track: "{{ $.Values.application.track }}"
       tier: worker
@@ -31,28 +35,47 @@ items:
       metadata:
         annotations:
           checksum/application-secrets: "{{ $.Values.application.secretChecksum }}"
-          {{ if $.Values.gitlab.app }}app.gitlab.com/app: {{ $.Values.gitlab.app | quote }}{{ end }}
-          {{ if $.Values.gitlab.env }}app.gitlab.com/env: {{ $.Values.gitlab.env | quote }}{{ end }}
+          {{- if $.Values.gitlab.app }}
+          app.gitlab.com/app: {{ $.Values.gitlab.app | quote }}
+          {{- end }}
+          {{- if $.Values.gitlab.env }}
+          app.gitlab.com/env: {{ $.Values.gitlab.env | quote }}
+          {{- end }}
 {{- if $.Values.podAnnotations }}
-{{ toYaml $.Values.podAnnotations | indent 10 }}
+{{- toYaml $.Values.podAnnotations | nindent 10 }}
 {{- end }}
         labels:
           track: "{{ $.Values.application.track }}"
           tier: worker
           release: {{ $.Release.Name }}
 {{- with $workerConfig.labels  }}
-{{ toYaml . | indent 10 }}
+{{- toYaml . | nindent 10 }}
 {{- end }}
       spec:
 {{- if or ($.Values.serviceAccount.name) ($.Values.serviceAccountName) }}
         serviceAccountName: {{ $.Values.serviceAccount.name | default $.Values.serviceAccountName | quote }}
 {{- end }}
         imagePullSecrets:
-  {{ toYaml $.Values.image.secrets | indent 12 }}
+{{- if and $workerConfig.image $workerConfig.image.secrets }}
+{{- toYaml $workerConfig.image.secrets | nindent 8 }}
+{{- else if $.Values.image.secrets }}
+{{- toYaml $.Values.image.secrets | nindent 8 }}
+{{- end }}
 {{- with $nodeSelectorConfig := default $.Values.nodeSelector $workerConfig.nodeSelector -}}
 {{- if $nodeSelectorConfig  }}
         nodeSelector:
-{{ toYaml $nodeSelectorConfig | indent 10 }}
+{{- toYaml $nodeSelectorConfig | nindent 10 }}
+{{- end }}
+{{- end }}
+{{- with $securityContextConfig := default $.Values.securityContext $workerConfig.securityContext -}}
+{{- if $securityContextConfig }}
+        securityContext:
+{{- toYaml $securityContextConfig | nindent 10 }}
+{{- end }}
+{{- end }}
+{{- with $hostNetworkConfig := default $.Values.hostNetwork $workerConfig.hostNetwork -}}
+{{- if $hostNetworkConfig  }}
+        hostNetwork: {{ $hostNetworkConfig }}
 {{- end }}
 {{- end }}
 {{- with $dnsPolicyConfig := default $.Values.dnsPolicy $workerConfig.dnsPolicy -}}
@@ -63,53 +86,55 @@ items:
 {{- with $dnsConfigConfig := default $.Values.dnsConfig $workerConfig.dnsConfig -}}
 {{- if $dnsConfigConfig  }}
         dnsConfig:
-{{ toYaml $dnsConfigConfig | indent 10 }}
+{{- toYaml $dnsConfigConfig | nindent 10 }}
 {{- end }}
 {{- end }}
 {{- with $tolerationsConfig := default $.Values.tolerations $workerConfig.tolerations -}}
 {{- if $tolerationsConfig  }}
         tolerations:
-{{ toYaml $tolerationsConfig | indent 10 }}
+{{- toYaml $tolerationsConfig | nindent 8 }}
 {{- end }}
 {{- end }}
 {{- with $affinityConfig := default $.Values.affinity $workerConfig.affinity -}}
 {{- if $affinityConfig  }}
         affinity:
-{{ toYaml $affinityConfig | indent 10 }}
+{{- toYaml $affinityConfig | nindent 10 }}
 {{- end }}
 {{- end }}
 {{- with $initContainersConfig := default $.Values.initContainers $workerConfig.initContainers -}}
 {{- if $initContainersConfig  }}
         initContainers:
-{{ toYaml $initContainersConfig | indent 10 }}
+{{- toYaml $initContainersConfig | nindent 8 }}
 {{- end }}
 {{- end }}
         terminationGracePeriodSeconds: {{ $workerConfig.terminationGracePeriodSeconds }}
 {{- if $workerConfig.hostAliases }}
         hostAliases:
-{{ $workerConfig.hostAliases | indent 10 }}
+{{- toYaml $workerConfig.hostAliases | nindent 8 }}
 {{- end }}
 {{- if $workerConfig.extraVolumes }}
         volumes:
-{{ toYaml $workerConfig.extraVolumes | indent 10 }}
+{{- toYaml $workerConfig.extraVolumes | nindent 8 }}
 {{- end }}
         containers:
         - name: {{ $.Chart.Name }}-{{ $workerName }}
-          image: {{ template "imagename" $ }}
+          image: "{{ template "workerimagename" (dict "worker" $workerConfig "glob" $.Values) }}"
+{{- if $workerConfig.command }}
           command:
-{{ toYaml $workerConfig.command | indent 10 }}
-          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+{{- toYaml $workerConfig.command | nindent 10 }}
+{{- end }}
+          imagePullPolicy: "{{ template "workerimagepullpolicy" (dict "worker" $workerConfig "glob" $.Values) }}"
           {{- if $.Values.application.secretName }}
           envFrom:
           - secretRef:
               name: {{ $.Values.application.secretName }}
 {{- if $workerConfig.extraEnvFrom }}
-{{ toYaml $workerConfig.extraEnvFrom | indent 10 }}
+{{- toYaml $workerConfig.extraEnvFrom | nindent 10 }}
 {{- end }}
           {{- else }}
           envFrom:
 {{- if $workerConfig.extraEnvFrom }}
-{{ toYaml $workerConfig.extraEnvFrom | indent 10 }}
+{{- toYaml $workerConfig.extraEnvFrom | nindent 10 }}
 {{- end }}
           {{- end }}
           env:
@@ -142,7 +167,7 @@ items:
 {{- else if eq $livenessProbeConfig.probeType "exec" }}
             exec:
               command:
-{{ toYaml $livenessProbeConfig.command | indent 16 }}
+{{- toYaml $livenessProbeConfig.command | nindent 14 }}
 {{- end }}
             initialDelaySeconds: {{ $livenessProbeConfig.initialDelaySeconds }}
             timeoutSeconds: {{ $livenessProbeConfig.timeoutSeconds }}
@@ -169,7 +194,7 @@ items:
 {{- else if eq $readinessProbeConfig.probeType "exec" }}
             exec:
               command:
-{{ toYaml $readinessProbeConfig.command | indent 16 }}
+{{- toYaml $readinessProbeConfig.command | nindent 14 }}
 {{- end }}
             initialDelaySeconds: {{ $readinessProbeConfig.initialDelaySeconds }}
             timeoutSeconds: {{ $readinessProbeConfig.timeoutSeconds }}
@@ -178,20 +203,26 @@ items:
           {{- if or $workerConfig.lifecycle $workerConfig.preStopCommand }}
           lifecycle:
           {{- if $workerConfig.lifecycle }}
-{{ toYaml $workerConfig.lifecycle | indent 12 }}
+{{- toYaml $workerConfig.lifecycle | nindent 12 }}
           {{- end }}
             {{- if $workerConfig.preStopCommand }}
             preStop:
               exec:
                 command:
-{{ toYaml $workerConfig.preStopCommand | indent 16 }}
+{{- toYaml $workerConfig.preStopCommand | nindent 16 }}
             {{- end}}
           {{- end }}
+{{- with $containerSecurityContextConfig := default $.Values.containerSecurityContext $workerConfig.containerSecurityContext -}}
+{{- if $containerSecurityContextConfig }}
+          securityContext:
+{{- toYaml $containerSecurityContextConfig | nindent 12 }}
+{{- end }}
+{{- end }}
           resources:
 {{ $workerConfig.resources | default $.Values.resources | toYaml | indent 12 }}
 {{- if $workerConfig.extraVolumeMounts }}
           volumeMounts:
-{{ toYaml $workerConfig.extraVolumeMounts | indent 12 }}         
+{{- toYaml $workerConfig.extraVolumeMounts | nindent 10 }}
 {{- end }}
 {{- end -}}
 {{- end -}}

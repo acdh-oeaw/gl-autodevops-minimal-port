@@ -4,8 +4,10 @@ import (
 	"io"
 	"log"
 	"os"
+	"os/exec"
 	"regexp"
 	"testing"
+	"strings"
 
 	"github.com/gruntwork-io/terratest/modules/helm"
 	"github.com/stretchr/testify/require"
@@ -40,26 +42,40 @@ func init() {
 	chartName = "auto-deploy-app-" + m["version"].(string)
 }
 
-func renderTemplate(t *testing.T, values map[string]string, releaseName string, templates []string, expectedErrorRegexp *regexp.Regexp) (string, bool) {
-	opts := &helm.Options{
-		SetValues: values,
-	}
+func mustRenderTemplate(t *testing.T, opts *helm.Options, releaseName string, templates []string, expectedErrorRegexp *regexp.Regexp, extraHelmArgs ...string) (string) {
 
-	output, err := helm.RenderTemplateE(t, opts, helmChartPath, releaseName, templates)
+	output, err := helm.RenderTemplateE(t, opts, helmChartPath, releaseName, templates, extraHelmArgs...)
 	if expectedErrorRegexp != nil {
 		if err == nil {
-			t.Error("Expected error but didn't happen")
+			t.Fatalf("Expected error but didn't happen")
 		} else {
 			require.Regexp(t, expectedErrorRegexp, err.Error())
 		}
-		return "", false
+		return ""
 	}
 	if err != nil {
-		t.Error(err)
-		return "", false
+		t.Fatalf("failed to render helm template: %s", err.Error())
+		return ""
 	}
 
-	return output, true
+	// yamllint with extra config
+	// check indenting of sequences with the default k8s style
+	// disable trailing-space check, because sometimes we have empty variables and we don't want to use if blocks around every option
+	cmd := exec.Command("yamllint", "-s", "-d", "{extends: default, rules: {line-length: {max: 160}, indentation: {indent-sequences: false}, trailing-spaces: disable}}", "-")
+	cmd.Stdin = strings.NewReader(output + "\n")
+	var out strings.Builder
+	cmd.Stdout = &out
+	err = cmd.Run()
+
+	if err != nil {
+		t.Fatalf("rendered template had yamllint errors: %s", out.String())
+		return ""
+	}
+
+	// needed, because yamllint does not detect empty lines containing spaces
+	require.NotRegexpf(t, regexp.MustCompile("\n[[:space:]]*\n"), output, "found empty lines in output")
+
+	return output
 }
 
 type workerDeploymentTestCase struct {
@@ -90,6 +106,10 @@ type workerDeploymentSelectorTestCase struct {
 
 type workerDeploymentServiceAccountTestCase struct {
 	ExpectedServiceAccountName string
+}
+
+type workerDeploymentHostNetworkTestCase struct {
+	ExpectedHostNetwork bool
 }
 
 type deploymentList struct {

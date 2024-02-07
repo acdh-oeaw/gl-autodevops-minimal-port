@@ -3,7 +3,7 @@
 apiVersion: networking.k8s.io/v1
 {{- else if .Capabilities.APIVersions.Has "networking.k8s.io/v1beta1/Ingress" }}
 apiVersion: networking.k8s.io/v1beta1
-{{ else }}
+{{- else }}
 apiVersion: extensions/v1beta1
 {{- end }}
 kind: Ingress
@@ -14,7 +14,7 @@ metadata:
   annotations:
 {{ include "ingress.annotations" . | indent 4 }}
 spec:
-{{/* We don't set a default value because old ingress controllers may not provide an IngressClass, causing deployments to fail */}}
+{{- /* We don't set a default value because old ingress controllers may not provide an IngressClass, causing deployments to fail */}}
 {{- if and .Values.ingress.className (.Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress") }}
   ingressClassName: {{ .Values.ingress.className | quote }}
 {{- end }}

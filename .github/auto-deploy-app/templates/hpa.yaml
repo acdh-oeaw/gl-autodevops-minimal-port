@@ -18,7 +18,7 @@ spec:
   maxReplicas: {{ .Values.hpa.maxReplicas }}
 {{- if .Values.hpa.metrics }}
   metrics:
-{{ toYaml .Values.hpa.metrics | indent 2 }}
+{{- toYaml .Values.hpa.metrics | nindent 2 }}
 {{- else }}
   targetCPUUtilizationPercentage: {{ .Values.hpa.targetCPUUtilizationPercentage }}
 {{- end }}

@@ -58,21 +58,12 @@ func TestPdbTemplate(t *testing.T) {
 				KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 			}
 
-			output, err := helm.RenderTemplateE(
-				t,
-				options,
-				helmChartPath,
-				release,
-				[]string{"templates/pdb.yaml"},
-			)
+			output := mustRenderTemplate(t, options, release, []string{"templates/pdb.yaml"}, tc.ExpectedErrorRegexp)
 
 			if tc.ExpectedErrorRegexp != nil {
-				require.Regexp(t, tc.ExpectedErrorRegexp, err.Error())
 				return
-			}
-
-			require.NoError(t, err)
-
+            }
+			
 			var podDisruptionBudget v1beta1.PodDisruptionBudget
 			helm.UnmarshalK8SYaml(t, output, &podDisruptionBudget)
 

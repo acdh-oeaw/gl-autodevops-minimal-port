@@ -104,17 +104,12 @@ func TestNetworkPolicy(t *testing.T) {
 				ValuesFiles: tc.valueFiles,
 				SetValues:   tc.values,
 			}
-			output, err := helm.RenderTemplateE(t, opts, helmChartPath, releaseName, templates)
+			output := mustRenderTemplate(t, opts, releaseName, templates, tc.expectedErrorRegexp)
 
 			if tc.expectedErrorRegexp != nil {
-				require.Regexp(t, tc.expectedErrorRegexp, err.Error())
 				return
-			}
-			if err != nil {
-				t.Error(err)
-				return
-			}
-
+            }
+			
 			policy := new(netV1.NetworkPolicy)
 			helm.UnmarshalK8SYaml(t, output, policy)
 

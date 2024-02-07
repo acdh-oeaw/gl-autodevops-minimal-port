@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	batchV1beta1 "k8s.io/api/batch/v1beta1"
 	coreV1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 func TestCronjobMeta(t *testing.T) {
@@ -21,6 +22,7 @@ func TestCronjobMeta(t *testing.T) {
 
 		ExpectedName    string
 		ExpectedRelease string
+		ExpectedLabels  map[string]string
 	}{
 		{
 			CaseName: "default",
@@ -33,6 +35,23 @@ func TestCronjobMeta(t *testing.T) {
 			},
 			ExpectedName:    "production",
 			ExpectedRelease: "production",
+			ExpectedLabels:	 nil,
+		},
+		{
+			CaseName: "extraLabels",
+			Release:  "production",
+			Values: map[string]string{
+				"cronjobs.job1.command[0]": "echo",
+				"cronjobs.job1.args[0]":    "hello",
+				"cronjobs.job2.command[0]": "echo",
+				"cronjobs.job2.args[0]":    "hello",
+				"extraLabels.firstLabel":    "expected-label",
+			},
+			ExpectedName:    "production",
+			ExpectedRelease: "production",
+			ExpectedLabels:	 map[string]string{
+				"firstLabel": "expected-label",
+			},
 		},
 		{
 			CaseName: "overriden release",
@@ -46,6 +65,7 @@ func TestCronjobMeta(t *testing.T) {
 			},
 			ExpectedName:    "productionOverridden",
 			ExpectedRelease: "production",
+			ExpectedLabels:	 nil,
 		},
 	} {
 		t.Run(tc.CaseName, func(t *testing.T) {
@@ -64,12 +84,7 @@ func TestCronjobMeta(t *testing.T) {
 				KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 			}
 
-			output, err := helm.RenderTemplateE(t, options, helmChartPath, tc.Release, []string{"templates/cronjob.yaml"})
-
-			if err != nil {
-				t.Error(err)
-				return
-			}
+			output := mustRenderTemplate(t, options, tc.Release, []string{"templates/cronjob.yaml"}, nil)
 
 			var cronjobs batchV1beta1.CronJobList
 			helm.UnmarshalK8SYaml(t, output, &cronjobs)
@@ -80,7 +95,7 @@ func TestCronjobMeta(t *testing.T) {
 					"app.gitlab.com/env": "prod",
 				}, cronjob.Annotations)
 
-				require.Equal(t, map[string]string{
+				ExpectedLabels := map[string]string{
 					"app":                          tc.ExpectedName,
 					"chart":                        chartName,
 					"heritage":                     "Helm",
@@ -91,7 +106,9 @@ func TestCronjobMeta(t *testing.T) {
 					"helm.sh/chart":                chartName,
 					"app.kubernetes.io/managed-by": "Helm",
 					"app.kubernetes.io/instance":   tc.ExpectedRelease,
-				}, cronjob.Labels)
+				}
+				mergeStringMap(ExpectedLabels, tc.ExpectedLabels)
+				require.Equal(t, ExpectedLabels, cronjob.Labels)
 
 				require.Equal(t, map[string]string{
 					"app.gitlab.com/app":           "auto-devops-examples/minimal-ruby-app",
@@ -144,12 +161,7 @@ func TestCronjobSchedule(t *testing.T) {
 				KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 			}
 
-			output, err := helm.RenderTemplateE(t, options, helmChartPath, tc.Release, []string{"templates/cronjob.yaml"})
-
-			if err != nil {
-				t.Error(err)
-				return
-			}
+			output := mustRenderTemplate(t, options, tc.Release, []string{"templates/cronjob.yaml"}, nil)
 
 			var cronjobs batchV1beta1.CronJobList
 			helm.UnmarshalK8SYaml(t, output, &cronjobs)
@@ -207,12 +219,7 @@ func TestCronjobImage(t *testing.T) {
 				KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 			}
 
-			output, err := helm.RenderTemplateE(t, options, helmChartPath, tc.Release, []string{"templates/cronjob.yaml"})
-
-			if err != nil {
-				t.Error(err)
-				return
-			}
+			output := mustRenderTemplate(t, options, tc.Release, []string{"templates/cronjob.yaml"}, nil)
 
 			var cronjobs batchV1beta1.CronJobList
 			helm.UnmarshalK8SYaml(t, output, &cronjobs)
@@ -347,12 +354,7 @@ func TestCronjobLivenessAndReadiness(t *testing.T) {
 				KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 			}
 
-			output, err := helm.RenderTemplateE(t, options, helmChartPath, tc.Release, []string{"templates/cronjob.yaml"})
-
-			if err != nil {
-				t.Error(err)
-				return
-			}
+			output := mustRenderTemplate(t, options, tc.Release, []string{"templates/cronjob.yaml"}, nil)
 
 			var cronjobs batchV1beta1.CronJobList
 			helm.UnmarshalK8SYaml(t, output, &cronjobs)
@@ -413,12 +415,7 @@ func TestCronjobNodeSelector(t *testing.T) {
 				KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 			}
 
-			output, err := helm.RenderTemplateE(t, options, helmChartPath, tc.Release, []string{"templates/cronjob.yaml"})
-
-			if err != nil {
-				t.Error(err)
-				return
-			}
+			output := mustRenderTemplate(t, options, tc.Release, []string{"templates/cronjob.yaml"}, nil)
 
 			var cronjobs batchV1beta1.CronJobList
 			helm.UnmarshalK8SYaml(t, output, &cronjobs)
@@ -502,12 +499,7 @@ func TestCronjobTolerations(t *testing.T) {
 				KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 			}
 
-			output, err := helm.RenderTemplateE(t, options, helmChartPath, tc.Release, []string{"templates/cronjob.yaml"})
-
-			if err != nil {
-				t.Error(err)
-				return
-			}
+			output := mustRenderTemplate(t, options, tc.Release, []string{"templates/cronjob.yaml"}, nil)
 
 			var cronjobs batchV1beta1.CronJobList
 			helm.UnmarshalK8SYaml(t, output, &cronjobs)
@@ -519,9 +511,81 @@ func TestCronjobTolerations(t *testing.T) {
 	}
 }
 
+func TestCronjobResources(t *testing.T) {
+	for _, tc := range []struct {
+		CaseName string
+		Values   map[string]string
+		Release  string
+
+		EoxpectedNodeSelector map[string]string
+		ExpectedResources     coreV1.ResourceRequirements
+	}{
+		{
+			CaseName: "default",
+			Release:  "production",
+			Values: map[string]string{
+				"cronjobs.job1.command[0]": "echo",
+				"cronjobs.job1.args[0]":    "hello",
+			},
+
+			ExpectedResources: coreV1.ResourceRequirements{
+				Limits:   coreV1.ResourceList(nil),
+				Requests: coreV1.ResourceList{},
+			},
+		},
+		{
+			CaseName: "added resources",
+			Release:  "production",
+			Values: map[string]string{
+				"cronjobs.job1.command[0]": "echo",
+				"cronjobs.job1.args[0]":    "hello",
+				"resources.limits.cpu":      "500m",
+				"resources.limits.memory":   "4Gi",
+				"resources.requests.cpu":    "200m",
+				"resources.requests.memory": "2Gi",
+			},
+
+			ExpectedResources: coreV1.ResourceRequirements{
+				Limits:   coreV1.ResourceList{
+					"cpu": resource.MustParse("500m"),
+					"memory": resource.MustParse("4Gi"),},
+				Requests: coreV1.ResourceList{
+					"cpu": resource.MustParse("200m"),
+					"memory": resource.MustParse("2Gi"),
+				},
+			},
+		},
+	} {
+		t.Run(tc.CaseName, func(t *testing.T) {
+			namespaceName := "minimal-ruby-app-" + strings.ToLower(random.UniqueId())
+
+			values := map[string]string{
+				"gitlab.app": "auto-devops-examples/minimal-ruby-app",
+				"gitlab.env": "prod",
+			}
+
+			mergeStringMap(values, tc.Values)
+
+			options := &helm.Options{
+				ValuesFiles:    []string{},
+				SetValues:      values,
+				KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
+			}
+
+			output := mustRenderTemplate(t, options, tc.Release, []string{"templates/cronjob.yaml"}, nil)
+
+			var cronjobs batchV1beta1.CronJobList
+			helm.UnmarshalK8SYaml(t, output, &cronjobs)
+
+			for _, cronjob := range cronjobs.Items {
+				require.Equal(t, tc.ExpectedResources, cronjob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Resources )
+			}
+		})
+	}
+}
+
 func TestCronjobTemplateWithVolumeMounts(t *testing.T) {
 	releaseName := "cronjob-with-volume-mounts-test"
-	templates := []string{"templates/cronjob.yaml"}
 
 	hostPathDirectoryType := coreV1.HostPathDirectory
 	configMapOptional := false
@@ -592,16 +656,11 @@ func TestCronjobTemplateWithVolumeMounts(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			opts := &helm.Options{
+			options := &helm.Options{
 				ValuesFiles: tc.valueFiles,
 				SetValues:   tc.values,
 			}
-			output, err := helm.RenderTemplateE(t, opts, helmChartPath, releaseName, templates)
-
-			if err != nil {
-				t.Error(err)
-				return
-			}
+			output := mustRenderTemplate(t, options, releaseName, []string{"templates/cronjob.yaml"}, nil)
 
 			var cronjobs batchV1beta1.CronJobList
 			helm.UnmarshalK8SYaml(t, output, &cronjobs)
@@ -710,12 +769,7 @@ func TestCronjobAffinity(t *testing.T) {
 				KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 			}
 
-			output, err := helm.RenderTemplateE(t, options, helmChartPath, tc.Release, []string{"templates/cronjob.yaml"})
-
-			if err != nil {
-				t.Error(err)
-				return
-			}
+			output := mustRenderTemplate(t, options, tc.Release, []string{"templates/cronjob.yaml"}, nil)
 
 			var cronjobs batchV1beta1.CronJobList
 			helm.UnmarshalK8SYaml(t, output, &cronjobs)
@@ -729,7 +783,6 @@ func TestCronjobAffinity(t *testing.T) {
 
 func TestCronJobTemplateWithExtraEnvFrom(t *testing.T) {
 	releaseName := "cronjob-with-extra-envfrom-test"
-	templates := []string{"templates/cronjob.yaml"}
 
 	tcs := []struct {
 		name            string
@@ -783,20 +836,278 @@ func TestCronJobTemplateWithExtraEnvFrom(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			opts := &helm.Options{
+			options := &helm.Options{
 				SetValues: tc.values,
 			}
-			output, err := helm.RenderTemplateE(t, opts, helmChartPath, releaseName, templates)
-
-			if err != nil {
-				t.Error(err)
-				return
-			}
+			output := mustRenderTemplate(t, options, releaseName, []string{"templates/cronjob.yaml"}, nil)
 
 			var cronjobs batchV1beta1.CronJobList
 			helm.UnmarshalK8SYaml(t, output, &cronjobs)
 			for _, cronjob := range cronjobs.Items {
 				require.Contains(t, cronjob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].EnvFrom, tc.expectedEnvFrom)
+			}
+		})
+	}
+}
+
+func TestCronJobTemplateWithSecurityContext(t *testing.T) {
+	releaseName := "cronjob-with-security-context"
+
+	tcs := []struct {
+		name                        string
+		values                      map[string]string
+		expectedSecurityContextName string
+	}{
+		{
+			name: "with gMSA security context",
+			values: map[string]string{
+				"cronjobs.job1.securityContext.windowsOptions.gmsaCredentialSpecName": "gmsa-test",
+			},
+			expectedSecurityContextName: "gmsa-test",
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			options := &helm.Options{
+				SetValues: tc.values,
+			}
+
+			output := mustRenderTemplate(t, options, releaseName, []string{"templates/cronjob.yaml"}, nil)
+
+			var cronjobs batchV1beta1.CronJobList
+			helm.UnmarshalK8SYaml(t, output, &cronjobs)
+			for _, cronjob := range cronjobs.Items {
+				require.Equal(t, *cronjob.Spec.JobTemplate.Spec.Template.Spec.SecurityContext.WindowsOptions.GMSACredentialSpecName, tc.expectedSecurityContextName)
+			}
+		})
+	}
+}
+
+func TestCronJobTemplateWithContainerSecurityContext(t *testing.T) {
+	releaseName := "cronjob-with-container-security-context"
+
+	tcs := []struct {
+		name                        				string
+		values                      				map[string]string
+		expectedSecurityContextCapabilities []coreV1.Capability
+	}{
+		{
+			name: "with container security context capabilities",
+			values: map[string]string{
+				"cronjobs.job1.containerSecurityContext.capabilities.drop[0]": "ALL",
+			},
+			expectedSecurityContextCapabilities: []coreV1.Capability{
+				"ALL",
+			},
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			options := &helm.Options{
+				SetValues: tc.values,
+			}
+
+			output := mustRenderTemplate(t, options, releaseName, []string{"templates/cronjob.yaml"}, nil)
+
+			var cronjobs batchV1beta1.CronJobList
+			helm.UnmarshalK8SYaml(t, output, &cronjobs)
+			for _, cronjob := range cronjobs.Items {
+				require.Equal(t, cronjob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].SecurityContext.Capabilities.Drop, tc.expectedSecurityContextCapabilities)
+			}
+		})
+	}
+}
+
+func TestCronjobImagePullSecrets(t *testing.T) {
+	for _, tc := range []struct {
+		CaseName                   string
+		Values                     map[string]string
+		Release 				   string
+		ExpectedImagePullSecrets   []coreV1.LocalObjectReference
+	}{
+		{
+			CaseName: "default secret",
+			Release:  "production",
+			Values: map[string]string{
+				"cronjobs.job1.command[0]": "echo",
+				"cronjobs.job1.args[0]":    "hello",
+				"cronjobs.job2.command[0]": "echo",
+				"cronjobs.job2.args[0]":    "hello",
+			},
+
+			ExpectedImagePullSecrets: []coreV1.LocalObjectReference{
+				{
+					Name: "gitlab-registry",
+				},
+			},
+		},
+		{
+			CaseName: "present secret",
+			Release:  "production",
+			Values: map[string]string{
+				"cronjobs.job1.command[0]": "echo",
+				"cronjobs.job1.args[0]":    "hello",
+				"cronjobs.job2.command[0]": "echo",
+				"cronjobs.job2.args[0]":    "hello",
+				"image.secrets[0].name":    "expected-secret",
+			},
+
+			ExpectedImagePullSecrets: []coreV1.LocalObjectReference{
+				{
+					Name: "expected-secret",
+				},
+			},
+		},
+		{
+			CaseName: "multiple secrets",
+			Release:  "production",
+			Values: map[string]string{
+				"cronjobs.job1.command[0]": "echo",
+				"cronjobs.job1.args[0]":    "hello",
+				"cronjobs.job2.command[0]": "echo",
+				"cronjobs.job2.args[0]":    "hello",
+				"image.secrets[0].name":    "expected-secret",
+				"image.secrets[1].name":    "additional-secret",
+			},
+
+			ExpectedImagePullSecrets: []coreV1.LocalObjectReference{
+				{
+					Name: "expected-secret",
+				},
+				{
+					Name: "additional-secret",
+				},
+			},
+		},
+		{
+			CaseName: "missing secret",
+			Release:  "production",
+			Values: map[string]string{
+				"cronjobs.job1.command[0]": "echo",
+				"cronjobs.job1.args[0]":    "hello",
+				"cronjobs.job2.command[0]": "echo",
+				"cronjobs.job2.args[0]":    "hello",
+				"image.secrets":            "null",
+			},
+
+			ExpectedImagePullSecrets: nil,
+		},
+	} {
+		t.Run(tc.CaseName, func(t *testing.T) {
+			namespaceName := "minimal-ruby-app-" + strings.ToLower(random.UniqueId())
+
+			values := map[string]string{
+				"gitlab.app": "auto-devops-examples/minimal-ruby-app",
+				"gitlab.env": "prod",
+			}
+
+			mergeStringMap(values, tc.Values)
+
+			options := &helm.Options{
+				ValuesFiles:    []string{},
+				SetValues:      values,
+				KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
+			}
+
+			output := mustRenderTemplate(t, options, tc.Release, []string{"templates/cronjob.yaml"}, nil)
+
+			var cronjobs batchV1beta1.CronJobList
+			helm.UnmarshalK8SYaml(t, output, &cronjobs)
+
+			for _, cronjob := range cronjobs.Items {
+				require.Equal(t, tc.ExpectedImagePullSecrets, cronjob.Spec.JobTemplate.Spec.Template.Spec.ImagePullSecrets)
+			}
+		})
+	}
+}
+
+func TestCronjobPodAnnotations(t *testing.T) {
+	for _, tc := range []struct {
+		CaseName                   string
+		Values                     map[string]string
+		Release 				   string
+		ExpectedPodAnnotations     map[string]string
+	}{
+		{
+			CaseName: "one podAnnotations",
+			Release:  "production",
+			Values: map[string]string{
+				"cronjobs.job1.command[0]":           "echo",
+				"cronjobs.job1.args[0]":              "hello",
+				"cronjobs.job2.command[0]":           "echo",
+				"cronjobs.job2.args[0]":              "hello",
+				"podAnnotations.firstAnnotation":    "expected-annotation",
+			},
+
+			ExpectedPodAnnotations: map[string]string{
+				"checksum/application-secrets": "",
+				"app.gitlab.com/app":           "auto-devops-examples/minimal-ruby-app",
+				"app.gitlab.com/env":           "prod",
+				"firstAnnotation":              "expected-annotation",
+			},
+		},
+		{
+			CaseName: "multiple podAnnotations",
+			Release:  "production",
+			Values: map[string]string{
+				"cronjobs.job1.command[0]":           "echo",
+				"cronjobs.job1.args[0]":              "hello",
+				"cronjobs.job2.command[0]":           "echo",
+				"cronjobs.job2.args[0]":              "hello",
+				"podAnnotations.firstAnnotation":    "expected-annotation",
+				"podAnnotations.secondAnnotation":   "expected-annotation",
+			},
+
+			ExpectedPodAnnotations: map[string]string{
+				"checksum/application-secrets": "",
+				"app.gitlab.com/app":           "auto-devops-examples/minimal-ruby-app",
+				"app.gitlab.com/env":           "prod",
+				"firstAnnotation":              "expected-annotation",
+				"secondAnnotation":             "expected-annotation",
+			},
+		},
+		{
+			CaseName: "no podAnnotations",
+			Release:  "production",
+			Values: map[string]string{
+				"cronjobs.job1.command[0]": "echo",
+				"cronjobs.job1.args[0]":    "hello",
+				"cronjobs.job2.command[0]": "echo",
+				"cronjobs.job2.args[0]":    "hello",
+			},
+
+			ExpectedPodAnnotations: map[string]string{
+				"checksum/application-secrets": "",
+				"app.gitlab.com/app":           "auto-devops-examples/minimal-ruby-app",
+				"app.gitlab.com/env":           "prod",
+			},
+		},
+	} {
+		t.Run(tc.CaseName, func(t *testing.T) {
+			namespaceName := "minimal-ruby-app-" + strings.ToLower(random.UniqueId())
+
+			values := map[string]string{
+				"gitlab.app": "auto-devops-examples/minimal-ruby-app",
+				"gitlab.env": "prod",
+			}
+
+			mergeStringMap(values, tc.Values)
+
+			options := &helm.Options{
+				ValuesFiles:    []string{},
+				SetValues:      values,
+				KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
+			}
+
+			output := mustRenderTemplate(t, options, tc.Release, []string{"templates/cronjob.yaml"}, nil)
+
+			var cronjobs batchV1beta1.CronJobList
+			helm.UnmarshalK8SYaml(t, output, &cronjobs)
+
+			for _, cronjob := range cronjobs.Items {
+				require.Equal(t, tc.ExpectedPodAnnotations, cronjob.Spec.JobTemplate.Spec.Template.ObjectMeta.Annotations)
 			}
 		})
 	}

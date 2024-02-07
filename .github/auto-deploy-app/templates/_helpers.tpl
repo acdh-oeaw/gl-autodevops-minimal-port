@@ -34,6 +34,30 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
 {{- end -}}
 
 {{/*
+Templates for worker
+*/}}
+
+{{- define "workerimagename" -}}
+{{- if hasKey .worker "image" -}}
+{{-   if and (hasKey .worker.image "repository") (hasKey .worker.image "tag") -}}
+{{- printf "%s:%s" .worker.image.repository .worker.image.tag -}}
+{{-   end -}}
+{{- else -}}
+{{- printf "%s:%s" .glob.image.repository .glob.image.tag -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "workerimagepullpolicy" -}}
+{{- if hasKey .worker "image" -}}
+{{-   if hasKey .worker.image "pullPolicy" -}}
+{{- printf "%s" .worker.image.pullPolicy -}}
+{{-   end -}}
+{{- else -}}
+{{- printf "%s" .glob.image.pullPolicy -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
 Templates for cronjob
 */}}
 

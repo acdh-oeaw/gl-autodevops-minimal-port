@@ -205,16 +205,11 @@ func TestWorkerDeploymentTemplate(t *testing.T) {
 				KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 			}
 
-			output, err := helm.RenderTemplateE(t, options, helmChartPath, tc.Release, []string{"templates/worker-deployment.yaml"})
+			output := mustRenderTemplate(t, options, tc.Release, []string{"templates/worker-deployment.yaml"}, tc.ExpectedErrorRegexp)
 
 			if tc.ExpectedErrorRegexp != nil {
-				require.Regexp(t, tc.ExpectedErrorRegexp, err.Error())
 				return
-			}
-			if err != nil {
-				t.Error(err)
-				return
-			}
+            }
 
 			var deployments deploymentList
 			helm.UnmarshalK8SYaml(t, output, &deployments)
@@ -256,6 +251,438 @@ func TestWorkerDeploymentTemplate(t *testing.T) {
 				require.Equal(t, expectedDeployment.ExpectedTolerations, deployment.Spec.Template.Spec.Tolerations)
 				require.Equal(t, expectedDeployment.ExpectedInitContainers, deployment.Spec.Template.Spec.InitContainers)
 				require.Equal(t, expectedDeployment.ExpectedAffinity, deployment.Spec.Template.Spec.Affinity)
+			}
+		})
+	}
+
+	for _, tc := range []struct {
+		CaseName string
+		Release  string
+		Values   map[string]string
+
+		ExpectedImagePullPolicy coreV1.PullPolicy
+		ExpectedImageRepository string
+	}{
+		{
+			CaseName: "worker image is defined",
+			Release:  "production",
+			Values: map[string]string{
+				"workers.worker1.image.repository": "worker1/image/repo",
+				"workers.worker1.image.tag":        "worker1-tag",
+			},
+			ExpectedImageRepository: string("worker1/image/repo:worker1-tag"),
+		},
+		{
+			CaseName: "worker image pullPolicy is defined",
+			Release:  "production",
+			Values: map[string]string{
+				"workers.worker1.image.repository": "worker1/image/repo",
+				"workers.worker1.image.tag":        "worker1-tag",
+				"workers.worker1.image.pullPolicy": "Always",
+			},
+			ExpectedImagePullPolicy: coreV1.PullAlways,
+			ExpectedImageRepository: string("worker1/image/repo:worker1-tag"),
+		},
+		{
+			CaseName: "root image is defined",
+			Release:  "production",
+			Values: map[string]string{
+				"image.repository": "root/image/repo",
+				"image.tag":        "root-tag",
+			},
+			ExpectedImagePullPolicy: coreV1.PullIfNotPresent,
+			ExpectedImageRepository: string("root/image/repo:root-tag"),
+		},
+	} {
+		t.Run(tc.CaseName, func(t *testing.T) {
+			namespaceName := "minimal-ruby-app-" + strings.ToLower(random.UniqueId())
+
+			values := map[string]string{
+				"gitlab.app":                 "auto-devops-examples/minimal-ruby-app",
+				"gitlab.env":                 "prod",
+				"workers.worker1.command[0]": "echo",
+				"workers.worker1.command[1]": "worker1",
+			}
+
+			mergeStringMap(values, tc.Values)
+
+			options := &helm.Options{
+				SetValues:      values,
+				KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
+			}
+
+			output := mustRenderTemplate(t, options, tc.Release, []string{"templates/worker-deployment.yaml"}, nil)
+
+			var deployments deploymentList
+			helm.UnmarshalK8SYaml(t, output, &deployments)
+			for i := range deployments.Items {
+				deployment := deployments.Items[i]
+				require.Equal(
+					t,
+					tc.ExpectedImageRepository,
+					deployment.Spec.Template.Spec.Containers[0].Image,
+				)
+				require.Equal(
+					t,
+					tc.ExpectedImagePullPolicy,
+					deployment.Spec.Template.Spec.Containers[0].ImagePullPolicy,
+				)
+			}
+		})
+	}
+
+	for _, tc := range []struct {
+		CaseName string
+		Release  string
+		Values   map[string]string
+
+		ExpectedImagePullSecrets []coreV1.LocalObjectReference
+	}{
+		{
+			CaseName: "global image secrets default",
+			Release:  "production",
+			Values: map[string]string{
+				"workers.worker1.command[0]": "echo",
+			},
+			ExpectedImagePullSecrets: []coreV1.LocalObjectReference{
+				{
+					Name: "gitlab-registry",
+				},
+			},
+		},
+		{
+			CaseName: "worker image secrets are defined",
+			Release:  "production",
+			Values: map[string]string{
+				"workers.worker1.image.secrets[0].name": "expected-secret",
+			},
+			ExpectedImagePullSecrets: []coreV1.LocalObjectReference{
+				{
+					Name: "expected-secret",
+				},
+			},
+		},
+		{
+			CaseName: "global image secrets are defined",
+			Release:  "production",
+			Values: map[string]string{
+				"image.secrets[0].name": "expected-secret",
+				"workers.worker1.command[0]": "echo",
+			},
+			ExpectedImagePullSecrets: []coreV1.LocalObjectReference{
+				{
+					Name: "expected-secret",
+				},
+			},
+		},
+	} {
+		t.Run(tc.CaseName, func(t *testing.T) {
+			namespaceName := "minimal-ruby-app-" + strings.ToLower(random.UniqueId())
+
+			values := map[string]string{}
+
+			mergeStringMap(values, tc.Values)
+
+			options := &helm.Options{
+				SetValues:      values,
+				KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
+			}
+
+			output := mustRenderTemplate(t, options, tc.Release, []string{"templates/worker-deployment.yaml"}, nil)
+
+			var deployments deploymentList
+
+			helm.UnmarshalK8SYaml(t, output, &deployments)
+			for i := range deployments.Items {
+				deployment := deployments.Items[i]
+				require.Equal(
+					t,
+					tc.ExpectedImagePullSecrets,
+					deployment.Spec.Template.Spec.ImagePullSecrets,
+				)
+			}
+		})
+	}
+
+	// podAnnotations & labels
+	for _, tc := range []struct {
+		CaseName                   string
+		Values                     map[string]string
+		Release 				   string
+		ExpectedPodAnnotations     map[string]string
+		ExpectedPodLabels          map[string]string
+	}{
+		{
+			CaseName: "one podAnnotations",
+			Release:  "production",
+			Values: map[string]string{
+				"podAnnotations.firstAnnotation":    "expected-annotation",
+				"workers.worker1.command[0]": "echo",
+			},
+			ExpectedPodAnnotations: map[string]string{
+				"checksum/application-secrets": "",
+				"firstAnnotation":              "expected-annotation",
+			},
+			ExpectedPodLabels: map[string]string{
+				"release":    "production",
+				"tier":       "worker",
+				"track":      "stable",
+			},
+		},
+		{
+			CaseName: "multiple podAnnotations",
+			Release:  "production",
+			Values: map[string]string{
+				"podAnnotations.firstAnnotation":    "expected-annotation",
+				"podAnnotations.secondAnnotation":   "expected-annotation",
+				"workers.worker1.command[0]": "echo",
+			},
+			ExpectedPodAnnotations: map[string]string{
+				"checksum/application-secrets": "",
+				"firstAnnotation":              "expected-annotation",
+				"secondAnnotation":             "expected-annotation",
+			},
+			ExpectedPodLabels: nil,
+		},
+		{
+			CaseName: "one label",
+			Release:  "production",
+			Values: map[string]string{
+				"workers.worker1.labels.firstLabel":    "expected-label",
+				"workers.worker1.command[0]": "echo",
+			},
+			ExpectedPodAnnotations: map[string]string{
+				"checksum/application-secrets": "",
+			},
+			ExpectedPodLabels: map[string]string{
+				"firstLabel": "expected-label",
+			},
+		},
+		{
+			CaseName: "multiple labels",
+			Release:  "production",
+			Values: map[string]string{
+				"workers.worker1.labels.firstLabel":    "expected-label",
+				"workers.worker1.labels.secondLabel":    "expected-label",
+				"workers.worker1.command[0]": "echo",
+			},
+			ExpectedPodAnnotations: map[string]string{
+				"checksum/application-secrets": "",
+			},
+			ExpectedPodLabels: map[string]string{
+				"firstLabel": "expected-label",
+				"secondLabel": "expected-label",
+			},
+		},
+		{
+			CaseName: "no podAnnotations & labels",
+			Release:  "production",
+			Values: map[string]string{
+				"workers.worker1.command[0]": "echo",
+			},
+			ExpectedPodAnnotations: map[string]string{
+				"checksum/application-secrets": "",
+			},
+			ExpectedPodLabels: nil,
+		},
+	} {
+		t.Run(tc.CaseName, func(t *testing.T) {
+			namespaceName := "minimal-ruby-app-" + strings.ToLower(random.UniqueId())
+
+			values := map[string]string{}
+
+			mergeStringMap(values, tc.Values)
+
+			options := &helm.Options{
+				SetValues:      values,
+				KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
+			}
+
+			output := mustRenderTemplate(t, options, tc.Release, []string{"templates/worker-deployment.yaml"}, nil)
+
+			var deployments deploymentList
+
+			helm.UnmarshalK8SYaml(t, output, &deployments)
+			for i := range deployments.Items {
+				deployment := deployments.Items[i]
+				require.Equal(t, tc.ExpectedPodAnnotations, deployment.Spec.Template.ObjectMeta.Annotations)
+				for key, value := range tc.ExpectedPodLabels {
+					require.Equal(t, deployment.Spec.Template.ObjectMeta.Labels[key], value)
+				}
+			}
+		})
+	}
+
+	// hostAliases
+	for _, tc := range []struct {
+		CaseName string
+		Release  string
+		Values   map[string]string
+
+		ExpectedHostAliases []coreV1.HostAlias
+	}{
+		{
+			CaseName: "hostAliases for two IP addresses",
+			Release:  "production",
+			Values: map[string]string{
+				"workers.worker1.command[0]": "echo",
+				"workers.worker1.hostAliases[0].ip":           "1.2.3.4",
+				"workers.worker1.hostAliases[0].hostnames[0]": "host1.example1.com",
+				"workers.worker1.hostAliases[1].ip":           "5.6.7.8",
+				"workers.worker1.hostAliases[1].hostnames[0]": "host1.example2.com",
+				"workers.worker1.hostAliases[1].hostnames[1]": "host2.example2.com",
+			},
+
+			ExpectedHostAliases: []coreV1.HostAlias{
+				{
+					IP:        "1.2.3.4",
+					Hostnames: []string{"host1.example1.com"},
+				},
+				{
+					IP:        "5.6.7.8",
+					Hostnames: []string{"host1.example2.com", "host2.example2.com"},
+				},
+			},
+		},
+	} {
+		t.Run(tc.CaseName, func(t *testing.T) {
+			namespaceName := "minimal-ruby-app-" + strings.ToLower(random.UniqueId())
+
+			values := map[string]string{}
+
+			mergeStringMap(values, tc.Values)
+
+			options := &helm.Options{
+				SetValues:      values,
+				KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
+			}
+
+			output := mustRenderTemplate(t, options, tc.Release, []string{"templates/worker-deployment.yaml"}, nil)
+
+			var deployments deploymentList
+
+			helm.UnmarshalK8SYaml(t, output, &deployments)
+			for i := range deployments.Items {
+				deployment := deployments.Items[i]
+				require.Equal(t, tc.ExpectedHostAliases, deployment.Spec.Template.Spec.HostAliases)
+			}
+		})
+	}
+
+	// dnsConfig
+	for _, tc := range []struct {
+		CaseName string
+		Release  string
+		Values   map[string]string
+
+		ExpectedDnsConfig *coreV1.PodDNSConfig
+	}{
+		{
+			CaseName: "dnsConfig with different DNS",
+			Release:  "production",
+			Values: map[string]string{
+				"workers.worker1.command[0]": "echo",
+				"workers.worker1.dnsConfig.nameservers[0]":  "1.2.3.4",
+				"workers.worker1.dnsConfig.options[0].name": "edns0",
+			},
+
+			ExpectedDnsConfig: &coreV1.PodDNSConfig{
+				Nameservers: []string{"1.2.3.4"},
+				Options:     []coreV1.PodDNSConfigOption{
+					{
+						Name: "edns0",
+					},
+				},
+			},
+		},
+	} {
+		t.Run(tc.CaseName, func(t *testing.T) {
+			namespaceName := "minimal-ruby-app-" + strings.ToLower(random.UniqueId())
+
+			values := map[string]string{}
+
+			mergeStringMap(values, tc.Values)
+
+			options := &helm.Options{
+				SetValues:      values,
+				KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
+			}
+
+			output := mustRenderTemplate(t, options, tc.Release, []string{"templates/worker-deployment.yaml"}, nil)
+
+			var deployments deploymentList
+
+			helm.UnmarshalK8SYaml(t, output, &deployments)
+			for i := range deployments.Items {
+				deployment := deployments.Items[i]
+				require.Equal(t, tc.ExpectedDnsConfig, deployment.Spec.Template.Spec.DNSConfig)
+			}
+		})
+	}
+
+	for _, tc := range []struct {
+		CaseName string
+		Release  string
+		Values   map[string]string
+
+		ExpectedDeployments []workerDeploymentHostNetworkTestCase
+	}{
+		{
+			CaseName: "worker hostNetwork is defined",
+			Release:  "production",
+			Values: map[string]string{
+				"workers.worker1.hostNetwork": "true",
+			},
+			ExpectedDeployments: []workerDeploymentHostNetworkTestCase{
+				{
+					ExpectedHostNetwork: bool(true),
+				},
+			},
+		},
+		{
+			CaseName: "root hostNetwork is defined",
+			Release:  "production",
+			Values: map[string]string{
+				"hostNetwork": "true",
+			},
+			ExpectedDeployments: []workerDeploymentHostNetworkTestCase{
+				{
+					ExpectedHostNetwork: bool(true),
+				},
+			},
+		},
+	} {
+		t.Run(tc.CaseName, func(t *testing.T) {
+			namespaceName := "minimal-ruby-app-" + strings.ToLower(random.UniqueId())
+
+			values := map[string]string{
+				"gitlab.app":                 "auto-devops-examples/minimal-ruby-app",
+				"gitlab.env":                 "prod",
+				"workers.worker1.command[0]": "echo",
+				"workers.worker1.command[1]": "worker1",
+			}
+
+			mergeStringMap(values, tc.Values)
+
+			options := &helm.Options{
+				SetValues:      values,
+				KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
+			}
+
+			output := mustRenderTemplate(t, options, tc.Release, []string{"templates/worker-deployment.yaml"}, nil)
+
+			var deployments deploymentAppsV1List
+			helm.UnmarshalK8SYaml(t, output, &deployments)
+
+			require.Len(t, deployments.Items, len(tc.ExpectedDeployments))
+
+			for i, expectedDeployment := range tc.ExpectedDeployments {
+				deployment := deployments.Items[i]
+				require.Equal(
+					t,
+					expectedDeployment.ExpectedHostNetwork,
+					deployment.Spec.Template.Spec.HostNetwork,
+				)
 			}
 		})
 	}
@@ -320,7 +747,7 @@ func TestWorkerDeploymentTemplate(t *testing.T) {
 				KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 			}
 
-			output := helm.RenderTemplate(t, options, helmChartPath, tc.Release, []string{"templates/worker-deployment.yaml"})
+			output := mustRenderTemplate(t, options, tc.Release, []string{"templates/worker-deployment.yaml"}, nil)
 
 			var deployments deploymentAppsV1List
 			helm.UnmarshalK8SYaml(t, output, &deployments)
@@ -409,7 +836,7 @@ func TestWorkerDeploymentTemplate(t *testing.T) {
 				KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 			}
 
-			output := helm.RenderTemplate(t, options, helmChartPath, tc.Release, []string{"templates/worker-deployment.yaml"})
+			output := mustRenderTemplate(t, options, tc.Release, []string{"templates/worker-deployment.yaml"}, nil)
 
 			var deployments deploymentAppsV1List
 			helm.UnmarshalK8SYaml(t, output, &deployments)
@@ -495,13 +922,7 @@ func TestWorkerDeploymentTemplate(t *testing.T) {
 				KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 			}
 
-			output := helm.RenderTemplate(
-				t,
-				options,
-				helmChartPath,
-				tc.Release,
-				[]string{"templates/worker-deployment.yaml"},
-			)
+			output := mustRenderTemplate(t, options, tc.Release, []string{"templates/worker-deployment.yaml"}, nil)
 
 			var deployments deploymentAppsV1List
 			helm.UnmarshalK8SYaml(t, output, &deployments)
@@ -623,7 +1044,7 @@ func TestWorkerDeploymentTemplate(t *testing.T) {
 				KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 			}
 
-			output := helm.RenderTemplate(t, options, helmChartPath, tc.Release, []string{"templates/worker-deployment.yaml"})
+			output := mustRenderTemplate(t, options, tc.Release, []string{"templates/worker-deployment.yaml"}, nil)
 
 			var deployments deploymentAppsV1List
 			helm.UnmarshalK8SYaml(t, output, &deployments)
@@ -735,6 +1156,48 @@ func TestWorkerDeploymentTemplate(t *testing.T) {
 			},
 		},
 		{
+			CaseName: "enableWorkerLivenessProbe exec",
+			Release:  "production",
+			Values: map[string]string{
+				"workers.worker1.command[0]":               "echo",
+				"workers.worker1.command[1]":               "worker1",
+				"workers.worker1.livenessProbe.probeType":  "exec",
+				"workers.worker1.livenessProbe.command[0]": "echo",
+				"workers.worker1.livenessProbe.command[1]": "hello",
+				"workers.worker2.command[0]":               "echo",
+				"workers.worker2.command[1]":               "worker2",
+				"workers.worker2.livenessProbe.probeType":  "exec",
+				"workers.worker2.livenessProbe.command[0]": "echo",
+				"workers.worker2.livenessProbe.command[1]": "hello",
+			},
+			ExpectedDeployments: []workerDeploymentTestCase{
+				{
+					ExpectedName: "production-worker1",
+					ExpectedCmd:  []string{"echo", "worker1"},
+					ExpectedLivenessProbe: &coreV1.Probe{
+						ProbeHandler: coreV1.ProbeHandler{
+							Exec: &coreV1.ExecAction{
+								Command: []string{"echo", "hello"},
+							},
+						},
+					},
+					ExpectedReadinessProbe: defaultReadinessProbe(),
+				},
+				{
+					ExpectedName: "production-worker2",
+					ExpectedCmd:  []string{"echo", "worker2"},
+					ExpectedLivenessProbe: &coreV1.Probe{
+						ProbeHandler: coreV1.ProbeHandler{
+							Exec: &coreV1.ExecAction{
+								Command: []string{"echo", "hello"},
+							},
+						},
+					},
+					ExpectedReadinessProbe: defaultReadinessProbe(),
+				},
+			},
+		},
+		{
 			CaseName: "enableWorkerReadinessProbe",
 			Release:  "production",
 			Values: map[string]string{
@@ -796,6 +1259,48 @@ func TestWorkerDeploymentTemplate(t *testing.T) {
 				},
 			},
 		},
+		{
+			CaseName: "enableWorkerReadinessProbe exec",
+			Release:  "production",
+			Values: map[string]string{
+				"workers.worker1.command[0]":                "echo",
+				"workers.worker1.command[1]":                "worker1",
+				"workers.worker1.readinessProbe.probeType":  "exec",
+				"workers.worker1.readinessProbe.command[0]": "echo",
+				"workers.worker1.readinessProbe.command[1]": "hello",
+				"workers.worker2.command[0]":                "echo",
+				"workers.worker2.command[1]":                "worker2",
+				"workers.worker2.readinessProbe.probeType":  "exec",
+				"workers.worker2.readinessProbe.command[0]": "echo",
+				"workers.worker2.readinessProbe.command[1]": "hello",
+			},
+			ExpectedDeployments: []workerDeploymentTestCase{
+				{
+					ExpectedName:          "production-worker1",
+					ExpectedCmd:           []string{"echo", "worker1"},
+					ExpectedLivenessProbe: defaultLivenessProbe(),
+					ExpectedReadinessProbe: &coreV1.Probe{
+						ProbeHandler: coreV1.ProbeHandler{
+							Exec: &coreV1.ExecAction{
+								Command: []string{"echo", "hello"},
+							},
+						},
+					},
+				},
+				{
+					ExpectedName:          "production-worker2",
+					ExpectedCmd:           []string{"echo", "worker2"},
+					ExpectedLivenessProbe: defaultLivenessProbe(),
+					ExpectedReadinessProbe: &coreV1.Probe{
+						ProbeHandler: coreV1.ProbeHandler{
+							Exec: &coreV1.ExecAction{
+								Command: []string{"echo", "hello"},
+							},
+						},
+					},
+				},
+			},
+		},
 	} {
 		t.Run(tc.CaseName, func(t *testing.T) {
 			namespaceName := "minimal-ruby-app-" + strings.ToLower(random.UniqueId())
@@ -812,7 +1317,7 @@ func TestWorkerDeploymentTemplate(t *testing.T) {
 				KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 			}
 
-			output := helm.RenderTemplate(t, options, helmChartPath, tc.Release, []string{"templates/worker-deployment.yaml"})
+			output := mustRenderTemplate(t, options, tc.Release, []string{"templates/worker-deployment.yaml"}, nil)
 
 			var deployments deploymentAppsV1List
 			helm.UnmarshalK8SYaml(t, output, &deployments)
@@ -943,7 +1448,7 @@ func TestWorkerDeploymentTemplate(t *testing.T) {
 				KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 			}
 
-			output := helm.RenderTemplate(t, options, helmChartPath, tc.Release, []string{"templates/worker-deployment.yaml"})
+			output := mustRenderTemplate(t, options, tc.Release, []string{"templates/worker-deployment.yaml"}, nil)
 
 			var deployments deploymentAppsV1List
 			helm.UnmarshalK8SYaml(t, output, &deployments)
@@ -1038,12 +1543,7 @@ func TestWorkerTemplateWithVolumeMounts(t *testing.T) {
 				ValuesFiles: tc.valueFiles,
 				SetValues:   tc.values,
 			}
-			output, err := helm.RenderTemplateE(t, opts, helmChartPath, releaseName, templates)
-
-			if err != nil {
-				t.Error(err)
-				return
-			}
+			output := mustRenderTemplate(t, opts, releaseName, templates, nil)
 
 			var deployments deploymentAppsV1List
 			helm.UnmarshalK8SYaml(t, output, &deployments)
@@ -1122,12 +1622,7 @@ func TestWorkerDatabaseUrlEnvironmentVariable(t *testing.T) {
 				KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 			}
 
-			output, err := helm.RenderTemplateE(t, options, helmChartPath, releaseName, []string{tc.Template})
-
-			if err != nil {
-				t.Error(err)
-				return
-			}
+			output := mustRenderTemplate(t, options, releaseName, []string{tc.Template}, nil)
 
 			var deployments deploymentAppsV1List
 			helm.UnmarshalK8SYaml(t, output, &deployments)
@@ -1205,17 +1700,82 @@ func TestWorkerDeploymentTemplateWithExtraEnvFrom(t *testing.T) {
 			opts := &helm.Options{
 				SetValues: tc.values,
 			}
-			output, err := helm.RenderTemplateE(t, opts, helmChartPath, releaseName, templates)
-
-			if err != nil {
-				t.Error(err)
-				return
-			}
+			output := mustRenderTemplate(t, opts, releaseName, templates, nil)
 
 			var deployments deploymentAppsV1List
 			helm.UnmarshalK8SYaml(t, output, &deployments)
 			for _, deployment := range deployments.Items {
 				require.Contains(t, deployment.Spec.Template.Spec.Containers[0].EnvFrom, tc.expectedEnvFrom)
+			}
+		})
+	}
+}
+
+func TestWorkerDeploymentTemplateWithSecurityContext(t *testing.T) {
+	releaseName := "worker-deployment-with-security-context"
+	templates := []string{"templates/worker-deployment.yaml"}
+
+	tcs := []struct {
+		name                        string
+		values                      map[string]string
+		expectedSecurityContextName string
+	}{
+		{
+			name: "with gMSA security context",
+			values: map[string]string{
+				"workers.worker1.securityContext.windowsOptions.gmsaCredentialSpecName": "gmsa-test",
+			},
+			expectedSecurityContextName: "gmsa-test",
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			opts := &helm.Options{
+				SetValues: tc.values,
+			}
+			output := mustRenderTemplate(t, opts, releaseName, templates, nil)
+
+			var deployments deploymentAppsV1List
+			helm.UnmarshalK8SYaml(t, output, &deployments)
+			for _, deployment := range deployments.Items {
+				require.Equal(t, *deployment.Spec.Template.Spec.SecurityContext.WindowsOptions.GMSACredentialSpecName, tc.expectedSecurityContextName)
+			}
+		})
+	}
+}
+
+func TestWorkerDeploymentTemplateWithContainerSecurityContext(t *testing.T) {
+	releaseName := "worker-deployment-with-container-security-context"
+	templates := []string{"templates/worker-deployment.yaml"}
+
+	tcs := []struct {
+		name                                string
+		values                              map[string]string
+		expectedSecurityContextCapabilities []coreV1.Capability
+	}{
+		{
+			name: "with container security context capabilities",
+			values: map[string]string{
+				"workers.worker1.containerSecurityContext.capabilities.drop[0]": "ALL",
+			},
+			expectedSecurityContextCapabilities: []coreV1.Capability{
+				"ALL",
+			},
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			opts := &helm.Options{
+				SetValues: tc.values,
+			}
+			output := mustRenderTemplate(t, opts, releaseName, templates, nil)
+
+			var deployments deploymentAppsV1List
+			helm.UnmarshalK8SYaml(t, output, &deployments)
+			for _, deployment := range deployments.Items {
+				require.Equal(t, deployment.Spec.Template.Spec.Containers[0].SecurityContext.Capabilities.Drop, tc.expectedSecurityContextCapabilities)
 			}
 		})
 	}

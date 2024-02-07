@@ -6,5 +6,5 @@ metadata:
   labels:
 {{ include "sharedlabels" . | indent 4}}
 spec:
-{{ toYaml .Values.networkPolicy.spec | indent 2 }}
+{{- toYaml .Values.networkPolicy.spec | nindent 2 }}
 {{- end -}}

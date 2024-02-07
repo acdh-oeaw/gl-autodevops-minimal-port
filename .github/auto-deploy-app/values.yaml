@@ -18,6 +18,9 @@ lifecycle: {}
 #     command: ["/bin/sh", "-c", "sleep 10"]
 podAnnotations: {}
 nodeSelector: {}
+securityContext: {}
+containerSecurityContext: {}
+hostNetwork: false
 dnsPolicy: {}
 dnsConfig: {}
 #    nameservers:
@@ -222,6 +225,12 @@ extraEnv: []
 workers: {}
   # worker:
   #   replicaCount: 1
+  #   image:
+  #     repository: gitlab.example.com/group/project
+  #     tag: stable
+  #     pullPolicy: IfNotPresent
+  #     secrets:
+  #       - name: gitlab-registry
   #   terminationGracePeriodSeconds: 60
   #   hostAliases:
   #   - ip: X.X.X.X
