@@ -311,5 +311,5 @@ jobs:
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: auto-deploy-values-yaml
+        name: ${{ inputs.APP_NAME }}-auto-deploy-values-yaml
         path: auto-deploy-values.yaml
