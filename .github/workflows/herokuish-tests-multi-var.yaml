@@ -130,7 +130,7 @@ jobs:
            bash psql-test.sh
       - name: Restore cached buildpack versions
         id: cache-buildpack-restore
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: |
             tmp/cache
@@ -175,7 +175,7 @@ jobs:
       - name: Save buildpack versions
         if: always()
         id: cache-buildpack-save
-        uses: actions/cache/save@v3
+        uses: actions/cache/save@v4
         with:
           path: |
             tmp/cache
