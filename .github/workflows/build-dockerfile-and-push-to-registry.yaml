@@ -39,6 +39,14 @@ on:
         required: false
         type: string
         default: ''
+      context:
+        required: false
+        type: string
+        default: '.'
+      file:
+        required: false
+        type: string
+        default: 'Dockerfile'
   workflow_dispatch: {}
   repository_dispatch:
     types: [run]
@@ -98,7 +106,8 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ${{ inputs.context }}
+          file: ${{ inputs.file }}
           build-args: |
             BUILDPACK_URL=${{ inputs.BUILDPACK_URL }}
           platforms: linux/amd64
