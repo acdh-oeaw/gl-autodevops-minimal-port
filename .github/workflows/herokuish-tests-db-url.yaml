@@ -177,7 +177,7 @@ jobs:
             tmp/cache
           key: ${{ steps.cache-buildpack-restore.outputs.cache-primary-key }}
       - name: Store test artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: test-artifacts
