@@ -19,7 +19,7 @@ func TestIngressTemplate_ModSecurity(t *testing.T) {
 SecRule REQUEST_HEADERS:Content-Type \"text/plain\" \"log,deny,id:\'20010\',status:403,msg:\'Text plain not allowed\'\"
 `
 	defaultAnnotations := map[string]string{
-		"kubernetes.io/ingress.class": "nginx",
+		"kubernetes.io/ingressClassName": "nginx",
 		"kubernetes.io/tls-acme":      "true",
 	}
 	defaultModSecurityAnnotations := map[string]string{
@@ -90,7 +90,7 @@ func TestIngressTemplate_DifferentTracks(t *testing.T) {
 			name:                             "defaults",
 			releaseName:                      "production",
 			expectedName:                     "production-auto-deploy",
-			expectedAnnotations:              map[string]string{"kubernetes.io/ingress.class": "nginx"},
+			expectedAnnotations:              map[string]string{"kubernetes.io/ingressClassName": "nginx"},
 			expectedInexistentAnnotationKeys: []string{"nginx.ingress.kubernetes.io/canary"},
 		},
 		{
@@ -98,7 +98,7 @@ func TestIngressTemplate_DifferentTracks(t *testing.T) {
 			releaseName:                      "production-canary",
 			values:                           map[string]string{"application.track": "canary"},
 			expectedName:                     "production-canary-auto-deploy",
-			expectedAnnotations:              map[string]string{"nginx.ingress.kubernetes.io/canary": "true", "nginx.ingress.kubernetes.io/canary-by-header": "canary", "kubernetes.io/ingress.class": "nginx"},
+			expectedAnnotations:              map[string]string{"nginx.ingress.kubernetes.io/canary": "true", "nginx.ingress.kubernetes.io/canary-by-header": "canary", "kubernetes.io/ingressClassName": "nginx"},
 			expectedInexistentAnnotationKeys: []string{"nginx.ingress.kubernetes.io/canary-weight"},
 		},
 		{
@@ -143,7 +143,7 @@ func TestIngressTemplate_TLS(t *testing.T) {
 	}{
 		{
 			name:                "defaults",
-			expectedAnnotations: map[string]string{"kubernetes.io/ingress.class": "nginx", "kubernetes.io/tls-acme": "true"},
+			expectedAnnotations: map[string]string{"kubernetes.io/ingressClassName": "nginx", "kubernetes.io/tls-acme": "true"},
 			expectedIngressTLS: []extensions.IngressTLS{
 				extensions.IngressTLS{
 					Hosts:      []string{"my.host.com"},
@@ -154,7 +154,7 @@ func TestIngressTemplate_TLS(t *testing.T) {
 		{
 			name:                "with tls disabled",
 			values:              map[string]string{"ingress.tls.enabled": "false"},
-			expectedAnnotations: map[string]string{"kubernetes.io/ingress.class": "nginx"},
+			expectedAnnotations: map[string]string{"kubernetes.io/ingressClassName": "nginx"},
 			expectedIngressTLS:  []extensions.IngressTLS(nil),
 		},
 	}
@@ -347,7 +347,7 @@ func TestIngressTemplate_NetworkingV1Beta1(t *testing.T) {
 			ingress := new(networkingv1beta.Ingress)
 			helm.UnmarshalK8SYaml(t, output, ingress)
 			require.Equal(t, "networking.k8s.io/v1beta1", ingress.APIVersion)
-			require.Equal(t, tc.expectedIngressClassAnnotation, ingress.Annotations["kubernetes.io/ingress.class"])
+			require.Equal(t, tc.expectedIngressClassAnnotation, ingress.Annotations["kubernetes.io/ingressClassName"])
 		})
 	}
 }
@@ -388,7 +388,7 @@ func TestIngressTemplate_NetworkingV1(t *testing.T) {
 			} else {
 				require.Equal(t, tc.expectedIngressClassName, *ingress.Spec.IngressClassName)
 			}
-			require.Equal(t, tc.expectedIngressClassAnnotation, ingress.Annotations["kubernetes.io/ingress.class"])
+			require.Equal(t, tc.expectedIngressClassAnnotation, ingress.Annotations["kubernetes.io/ingressClassName"])
 		})
 	}
 }
@@ -403,5 +403,5 @@ func TestIngressTemplate_Extensions(t *testing.T) {
 	ingress := new(extensions.Ingress)
 	helm.UnmarshalK8SYaml(t, output, ingress)
 	require.Equal(t, "extensions/v1beta1", ingress.APIVersion)
-	require.Equal(t, "nginx", ingress.Annotations["kubernetes.io/ingress.class"])
+	require.Equal(t, "nginx", ingress.Annotations["kubernetes.io/ingressClassName"])
 }
