@@ -142,6 +142,9 @@ items:
           - name: DATABASE_URL
             value: {{ $.Values.application.database_url | quote }}
 {{- end }}
+{{- if $workerConfig.extraEnv }}
+{{- toYaml $workerConfig.extraEnv | nindent 10 }}
+{{- end }}
           - name: GITLAB_ENVIRONMENT_NAME
             value: {{ $.Values.gitlab.envName | quote }}
           - name: GITLAB_ENVIRONMENT_URL

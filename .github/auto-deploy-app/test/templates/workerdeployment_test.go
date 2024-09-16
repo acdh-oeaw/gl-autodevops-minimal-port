@@ -1711,6 +1711,50 @@ func TestWorkerDeploymentTemplateWithExtraEnvFrom(t *testing.T) {
 	}
 }
 
+func TestWorkerDeploymentTemplateWithExtraEnv(t *testing.T) {
+	releaseName := "worker-deployment-with-extra-env-test"
+	templates := []string{"templates/worker-deployment.yaml"}
+
+	tcs := []struct {
+		name        string
+		values      map[string]string
+		expectedEnv coreV1.EnvVar
+	}{
+		{
+			name: "with extra env secret test",
+			values: map[string]string{
+				"workers.worker1.command[0]": "echo",
+				"workers.worker1.command[1]": "worker1",
+				"workers.worker1.extraEnv[0].name": "env-name-test",
+				"workers.worker1.extraEnv[0].value": "test-value",
+			},
+			expectedEnv: coreV1.EnvVar{
+				Name:  "env-name-test",
+				Value: "test-value",
+			},
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			namespaceName := "minimal-ruby-app-" + strings.ToLower(random.UniqueId())
+
+			options := &helm.Options{
+				SetValues: tc.values,
+				KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
+			}
+
+			output := mustRenderTemplate(t, options, releaseName, templates, nil)
+
+			var deployments deploymentAppsV1List
+			helm.UnmarshalK8SYaml(t, output, &deployments)
+			for _, deployment := range deployments.Items {
+				require.Contains(t, deployment.Spec.Template.Spec.Containers[0].Env, tc.expectedEnv)
+			}
+		})
+	}
+}
+
 func TestWorkerDeploymentTemplateWithSecurityContext(t *testing.T) {
 	releaseName := "worker-deployment-with-security-context"
 	templates := []string{"templates/worker-deployment.yaml"}

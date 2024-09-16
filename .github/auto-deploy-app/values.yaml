@@ -11,18 +11,18 @@ image:
   pullPolicy: IfNotPresent
   secrets:
     - name: gitlab-registry
-extraLabels: {}
-lifecycle: {}
+extraLabels: { }
+lifecycle: { }
 # preStop:
 #   exec:
 #     command: ["/bin/sh", "-c", "sleep 10"]
-podAnnotations: {}
-nodeSelector: {}
-securityContext: {}
-containerSecurityContext: {}
+podAnnotations: { }
+nodeSelector: { }
+securityContext: { }
+containerSecurityContext: { }
 hostNetwork: false
-dnsPolicy: {}
-dnsConfig: {}
+dnsPolicy: { }
+dnsConfig: { }
 #    nameservers:
 #      - 8.8.8.8
 #    searches:
@@ -31,14 +31,14 @@ dnsConfig: {}
 #    options:
 #      - name: ndots
 #        value: "1"
-affinity: {}
-tolerations: []
+affinity: { }
+tolerations: [ ]
 priorityClassName:
-initContainers: []
+initContainers: [ ]
 # - name: init-myservice
 #   image: busybox
 #   command: ['sh', '-c', 'until nslookup myservice; do echo waiting for myservice to start; sleep 1; done;']
-topologySpreadConstraints: []
+topologySpreadConstraints: [ ]
 application:
   track: stable
   tier: web
@@ -76,7 +76,7 @@ gitlab:
   projectID:
 service:
   enabled: true
-  annotations: {}
+  annotations: { }
   name: web
   type: ClusterIP
   url: http://my.host.com/
@@ -85,7 +85,7 @@ service:
   externalPort: 5000
   internalPort: 5000
   # nodePort: 30001
-  extraPorts: []
+  extraPorts: [ ]
 ingress:
   enabled: true
   path: "/"
@@ -113,7 +113,7 @@ livenessProbe:
   timeoutSeconds: 15
   scheme: "HTTP"
   probeType: "httpGet"
-  httpHeaders: []
+  httpHeaders: [ ]
 readinessProbe:
   enabled: true
   path: "/"
@@ -121,7 +121,7 @@ readinessProbe:
   timeoutSeconds: 3
   scheme: "HTTP"
   probeType: "httpGet"
-  httpHeaders: []
+  httpHeaders: [ ]
 startupProbe:
   enabled: false
   path: "/"
@@ -131,7 +131,7 @@ startupProbe:
   periodSeconds: 10
   scheme: "HTTP"
   probeType: "httpGet"
-  httpHeaders: []
+  httpHeaders: [ ]
 
 #hostAliases:
 #- ip: X.X.X.X
@@ -142,14 +142,14 @@ startupProbe:
 postgresql:
   managed: false
   managedClassSelector:
-    #   matchLabels:
-    #     stack: gitlab (This is an example. The labels should match the labels on the CloudSQLInstanceClass)
+  #   matchLabels:
+  #     stack: gitlab (This is an example. The labels should match the labels on the CloudSQLInstanceClass)
 
 resources:
-#  limits:
-#    cpu: 100m
-#    memory: 128Mi
-  requests: {}
+  #  limits:
+  #    cpu: 100m
+  #    memory: 128Mi
+  requests: { }
 #    cpu: 100m
 #    memory: 128Mi
 
@@ -168,18 +168,18 @@ networkPolicy:
   enabled: false
   spec:
     podSelector:
-      matchLabels: {}
+      matchLabels: { }
     ingress:
-    - from:
-      - podSelector:
-          matchLabels: {}
-      - namespaceSelector:
-          matchLabels:
-            app.gitlab.com/managed_by: gitlab
+      - from:
+          - podSelector:
+              matchLabels: { }
+          - namespaceSelector:
+              matchLabels:
+                app.gitlab.com/managed_by: gitlab
 
 serviceAccount:
   name:
-  annotations: {}
+  annotations: { }
   createNew: false
 
 persistence:
@@ -197,11 +197,14 @@ persistence:
         # For example, GKE automatically chooses a default storage class and allocate a physical storage.
         # See https://cloud.google.com/kubernetes-engine/docs/concepts/persistent-volumes for more information.
         # storageClass: "myStorage"
+        # You can also reserve a persistent volume using `volumeName`
+        # See https://kubernetes.io/docs/concepts/storage/persistent-volumes/#reserving-a-persistentvolume
+        # volumeName: "my-vol"
 
 ## Configure extra Volumes
 ## ref: https://kubernetes.io/docs/concepts/storage/volumes/
 #
-extraVolumes: []
+extraVolumes: [ ]
 # - name: config-volume
 #   configMap:
 #     name: test-config
@@ -209,20 +212,20 @@ extraVolumes: []
 ## Configure extra Volumes mounts
 ## ref: https://kubernetes.io/docs/concepts/storage/volumes/
 #
-extraVolumeMounts: []
+extraVolumeMounts: [ ]
 # - name: config-volume
 #   mountPath: /app/config.yaml
 #   subPath: config.yaml
 
-extraEnvFrom: []
+extraEnvFrom: [ ]
 # - secretRef:
-#     name: {{ .Values.application.secretName }}
+#     name: "{{ .Values.application.secretName }}"
 
-extraEnv: []
+extraEnv: [ ]
 # - name:  ENV_VAR
 #   value: ENV_VAL
 
-workers: {}
+workers: { }
   # worker:
   #   replicaCount: 1
   #   image:
@@ -276,9 +279,10 @@ workers: {}
   #   - stop_worker
   #   extraVolumes: []
   #   extraVolumeMounts: []
-  #   extraEnvFrom: []
+  #   extraEnv: []
+#   extraEnvFrom: []
 
-cronjobs: {}
+cronjobs: { }
   # job:
   #   schedule: "*/2 * * * *"
   #   image:
@@ -307,28 +311,23 @@ cronjobs: {}
   #     probeType: "httpGet"
   #   extraVolumes: []
   #   extraVolumeMounts: []
-  #   extraEnvFrom: []
+#   extraEnvFrom: []
 
-# customResources:
-#   - apiVersion: "traefik.containo.us/v1alpha1"
-#     kind: "IngressRoute"
-#     metadata:
-#       name: "ingress-route"
-#       namespace: "default"
-#     spec:
-#       entryPoints:
-#         - "web"
-#       routes:
-#         - match: "Host(`{{ .Values.envName }}.{{ .Values.envURL }}`)"
-#           kind: "Rule"
-#           services:
-#             - name: "web"
-#               port: {{ .Values.service.internalPort }}
-#               weight: 100
-#       tls:
-#         secretName: "tls-secret"
-#         options:
-#           name: "tls-options"
-#           namespace: "default"
-#           kind: "TLSOptions"
-#           minVersion: "VersionTLS12"
+#customResources:
+#  - apiVersion: v1
+#    kind: ServiceAccount
+#    metadata:
+#      name: "busybox-{{ .Release.Name }}-sa"
+#      namespace: "{{ .Release.Namespace }}"
+#  - apiVersion: v1
+#    kind: Pod
+#    metadata:
+#      name: "busybox-{{ .Release.Name }}-cr"
+#      namespace: "{{ .Release.Namespace }}"
+#    spec:
+#      serviceAccountName: "busybox-{{ .Release.Name }}-sa"
+#      containers:
+#        - name: "busybox-{{.Release.Name}}-cr"
+#          image: busybox:latest
+#          imagePullPolicy: IfNotPresent
+#          command: [ "sh", "-c", "echo Hello Kubernetes! && sleep 3600" ]

@@ -16,6 +16,7 @@ func TestPvcTemplate_Single(t *testing.T) {
 	templates := []string{"templates/pvc.yaml"}
 	releaseName := "test"
 	customStorageClassName := "MyStorageClass"
+	customVolumeName := "MyVolumeName"
 	expectedLabels := map[string]string{
 		"app":                          releaseName,
 		"chart":                        chartName,
@@ -53,6 +54,7 @@ func TestPvcTemplate_Single(t *testing.T) {
 				"persistence.volumes[0].claim.accessMode":   "ReadOnlyMany",
 				"persistence.volumes[0].claim.size":         "20Gi",
 				"persistence.volumes[0].claim.storageClass": customStorageClassName,
+				"persistence.volumes[0].claim.volumeName":   customVolumeName,
 				"persistence.volumes[0].mount.path":         "/log",
 			},
 			expectedMeta: metav1.ObjectMeta{Name: "test-auto-deploy-log-dir", Labels: expectedLabels},
@@ -60,6 +62,7 @@ func TestPvcTemplate_Single(t *testing.T) {
 				AccessModes:      [](coreV1.PersistentVolumeAccessMode){coreV1.ReadOnlyMany},
 				Resources:        coreV1.ResourceRequirements{Requests: coreV1.ResourceList{"storage": resource.MustParse("20Gi")}},
 				StorageClassName: &customStorageClassName,
+				VolumeName:       customVolumeName,
 			},
 		},
 		{
@@ -72,7 +75,7 @@ func TestPvcTemplate_Single(t *testing.T) {
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
 			opts := &helm.Options{
-				SetValues:   tc.values,
+				SetValues: tc.values,
 			}
 			output := mustRenderTemplate(t, opts, releaseName, templates, tc.expectedErrorRegexp)
 
@@ -83,6 +86,7 @@ func TestPvcTemplate_Single(t *testing.T) {
 			require.Equal(t, tc.expectedPVC.AccessModes, pvc.Spec.AccessModes)
 			require.Equal(t, tc.expectedPVC.Resources.Requests["storage"], pvc.Spec.Resources.Requests["storage"])
 			require.Equal(t, tc.expectedPVC.StorageClassName, pvc.Spec.StorageClassName)
+			require.Equal(t, tc.expectedPVC.VolumeName, pvc.Spec.VolumeName)
 		})
 	}
 }
@@ -91,6 +95,7 @@ func TestPvcTemplate_Multiple(t *testing.T) {
 	templates := []string{"templates/pvc.yaml"}
 	releaseName := "test"
 	customStorageClassName := "MyStorageClass"
+	customVolumeName := "MyVolumeName"
 	expectedLabels := map[string]string{
 		"app":                          releaseName,
 		"chart":                        chartName,
@@ -123,6 +128,7 @@ func TestPvcTemplate_Multiple(t *testing.T) {
 				"persistence.volumes[1].claim.accessMode":   "ReadOnlyMany",
 				"persistence.volumes[1].claim.size":         "20Gi",
 				"persistence.volumes[1].claim.storageClass": customStorageClassName,
+				"persistence.volumes[1].claim.volumeName":   customVolumeName,
 				"persistence.volumes[1].mount.path":         "/log",
 			},
 			expectedMetas: []metav1.ObjectMeta{
@@ -138,6 +144,7 @@ func TestPvcTemplate_Multiple(t *testing.T) {
 					AccessModes:      [](coreV1.PersistentVolumeAccessMode){coreV1.ReadOnlyMany},
 					Resources:        coreV1.ResourceRequirements{Requests: coreV1.ResourceList{"storage": resource.MustParse("20Gi")}},
 					StorageClassName: &customStorageClassName,
+					VolumeName:       customVolumeName,
 				},
 			},
 		},
@@ -146,7 +153,7 @@ func TestPvcTemplate_Multiple(t *testing.T) {
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
 			opts := &helm.Options{
-				SetValues:   tc.values,
+				SetValues: tc.values,
 			}
 			output := mustRenderTemplate(t, opts, releaseName, templates, tc.expectedErrorRegexp)
 
@@ -158,6 +165,7 @@ func TestPvcTemplate_Multiple(t *testing.T) {
 				require.Equal(t, tc.expectedPVCs[i].AccessModes, pvc.Spec.AccessModes)
 				require.Equal(t, tc.expectedPVCs[i].Resources.Requests["storage"], pvc.Spec.Resources.Requests["storage"])
 				require.Equal(t, tc.expectedPVCs[i].StorageClassName, pvc.Spec.StorageClassName)
+				require.Equal(t, tc.expectedPVCs[i].VolumeName, pvc.Spec.VolumeName)
 			}
 		})
 	}

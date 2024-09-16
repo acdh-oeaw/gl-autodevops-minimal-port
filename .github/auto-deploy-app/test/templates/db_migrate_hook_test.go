@@ -97,7 +97,7 @@ func TestMigrateDatabaseImagePullSecrets(t *testing.T) {
 			CaseName: "present-secret",
 			Values: map[string]string{
 				"application.migrateCommand": "echo migrate",
-				"image.secrets[0].name": "expected-secret",
+				"image.secrets[0].name":      "expected-secret",
 			},
 			ExpectedImagePullSecrets: []coreV1.LocalObjectReference{
 				{
@@ -110,8 +110,8 @@ func TestMigrateDatabaseImagePullSecrets(t *testing.T) {
 			CaseName: "multiple-secrets",
 			Values: map[string]string{
 				"application.migrateCommand": "echo migrate",
-				"image.secrets[0].name": "expected-secret",
-				"image.secrets[1].name": "additional-secret",
+				"image.secrets[0].name":      "expected-secret",
+				"image.secrets[1].name":      "additional-secret",
 			},
 			ExpectedImagePullSecrets: []coreV1.LocalObjectReference{
 				{
@@ -127,10 +127,10 @@ func TestMigrateDatabaseImagePullSecrets(t *testing.T) {
 			CaseName: "missing-secret",
 			Values: map[string]string{
 				"application.migrateCommand": "echo migrate",
-				"image.secrets": "null",
+				"image.secrets":              "null",
 			},
 			ExpectedImagePullSecrets: nil,
-			Template: "templates/db-migrate-hook.yaml",
+			Template:                 "templates/db-migrate-hook.yaml",
 		},
 	}
 
@@ -165,11 +165,11 @@ func TestMigrateDatabaseLabels(t *testing.T) {
 	releaseName := "migrate-application-database-labels"
 
 	for _, tc := range []struct {
-		CaseName        string
-		Values          map[string]string
-		Release 		string
-		ExpectedLabels  map[string]string
-		Template        string
+		CaseName       string
+		Values         map[string]string
+		Release        string
+		ExpectedLabels map[string]string
+		Template       string
 	}{
 		{
 			CaseName: "no label",
@@ -178,14 +178,14 @@ func TestMigrateDatabaseLabels(t *testing.T) {
 				"application.migrateCommand": "echo migrate",
 			},
 			ExpectedLabels: nil,
-			Template: "templates/db-migrate-hook.yaml",
+			Template:       "templates/db-migrate-hook.yaml",
 		},
 		{
 			CaseName: "one label",
 			Release:  "production",
 			Values: map[string]string{
 				"application.migrateCommand": "echo migrate",
-				"extraLabels.firstLabel":    "expected-label",
+				"extraLabels.firstLabel":     "expected-label",
 			},
 			ExpectedLabels: map[string]string{
 				"firstLabel": "expected-label",
@@ -197,11 +197,11 @@ func TestMigrateDatabaseLabels(t *testing.T) {
 			Release:  "production",
 			Values: map[string]string{
 				"application.migrateCommand": "echo migrate",
-				"extraLabels.firstLabel":    "expected-label",
+				"extraLabels.firstLabel":     "expected-label",
 				"extraLabels.secondLabel":    "expected-label",
 			},
 			ExpectedLabels: map[string]string{
-				"firstLabel": "expected-label",
+				"firstLabel":  "expected-label",
 				"secondLabel": "expected-label",
 			},
 			Template: "templates/db-migrate-hook.yaml",
@@ -227,6 +227,108 @@ func TestMigrateDatabaseLabels(t *testing.T) {
 			for key, value := range tc.ExpectedLabels {
 				require.Equal(t, deployment.ObjectMeta.Labels[key], value)
 				require.Equal(t, deployment.Spec.Template.ObjectMeta.Labels[key], value)
+			}
+		})
+	}
+}
+
+func TestMigrateDatabaseTemplateWithExtraEnvFrom(t *testing.T) {
+	releaseName := "migrate-application-database-extra-envfrom"
+	templates := []string{"templates/db-migrate-hook.yaml"}
+
+	tcs := []struct {
+		name            string
+		values          map[string]string
+		expectedEnvFrom coreV1.EnvFromSource
+	}{
+		{
+			name: "with extra envfrom secret test",
+			values: map[string]string{
+				"application.migrateCommand":     "echo migrate",
+				"extraEnvFrom[0].secretRef.name": "secret-name-test",
+			},
+			expectedEnvFrom: coreV1.EnvFromSource{
+				SecretRef: &coreV1.SecretEnvSource{
+					LocalObjectReference: coreV1.LocalObjectReference{
+						Name: "secret-name-test",
+					},
+				},
+			},
+		},
+		{
+			name: "test with extra env from secret using templating values",
+			values: map[string]string{
+				"application.migrateCommand":     "echo migrate",
+				"extraEnvFrom[0].secretRef.name": "secret-name-{{ .Release.Name }}",
+			},
+			expectedEnvFrom: coreV1.EnvFromSource{
+				SecretRef: &coreV1.SecretEnvSource{
+					LocalObjectReference: coreV1.LocalObjectReference{
+						Name: "secret-name-" + releaseName,
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			namespaceName := "minimal-ruby-app-" + strings.ToLower(random.UniqueId())
+
+			options := &helm.Options{
+				SetValues:      tc.values,
+				KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
+			}
+
+			output := mustRenderTemplate(t, options, releaseName, templates, nil)
+
+			var deployments deploymentAppsV1List
+			helm.UnmarshalK8SYaml(t, output, &deployments)
+			for _, deployment := range deployments.Items {
+				require.Contains(t, deployment.Spec.Template.Spec.Containers[0].EnvFrom, tc.expectedEnvFrom)
+			}
+		})
+	}
+}
+
+func TestMigrateDatabaseTemplateWithExtraEnv(t *testing.T) {
+	releaseName := "migrate-application-database-extra-env"
+	templates := []string{"templates/db-migrate-hook.yaml"}
+
+	tcs := []struct {
+		name        string
+		values      map[string]string
+		expectedEnv coreV1.EnvVar
+	}{
+		{
+			name: "with extra env secret test",
+			values: map[string]string{
+				"application.migrateCommand": "echo migrate",
+				"extraEnv[0].name":           "env-name-test",
+				"extraEnv[0].value":          "test-value",
+			},
+			expectedEnv: coreV1.EnvVar{
+				Name:  "env-name-test",
+				Value: "test-value",
+			},
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			namespaceName := "minimal-ruby-app-" + strings.ToLower(random.UniqueId())
+
+			options := &helm.Options{
+				SetValues:      tc.values,
+				KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
+			}
+
+			output := mustRenderTemplate(t, options, releaseName, templates, nil)
+
+			var deployments deploymentAppsV1List
+			helm.UnmarshalK8SYaml(t, output, &deployments)
+			for _, deployment := range deployments.Items {
+				require.Contains(t, deployment.Spec.Template.Spec.Containers[0].Env, tc.expectedEnv)
 			}
 		})
 	}

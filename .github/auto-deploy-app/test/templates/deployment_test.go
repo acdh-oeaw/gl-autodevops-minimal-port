@@ -11,17 +11,17 @@ import (
 	"github.com/stretchr/testify/require"
 	appsV1 "k8s.io/api/apps/v1"
 	coreV1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 func TestDeploymentTemplate(t *testing.T) {
 	for _, tc := range []struct {
-		CaseName string
-		Release  string
-		Values   map[string]string
-		ExpectedLabels  map[string]string
+		CaseName       string
+		Release        string
+		Values         map[string]string
+		ExpectedLabels map[string]string
 
 		ExpectedErrorRegexp *regexp.Regexp
 
@@ -38,19 +38,19 @@ func TestDeploymentTemplate(t *testing.T) {
 			ExpectedName:         "productionOverridden",
 			ExpectedRelease:      "production",
 			ExpectedStrategyType: appsV1.DeploymentStrategyType(""),
-			ExpectedLabels:	 nil,
+			ExpectedLabels:       nil,
 		},
 		{
 			CaseName: "extraLabel",
 			Release:  "production",
 			Values: map[string]string{
-				"releaseOverride": "productionOverridden",
-				"extraLabels.firstLabel":    "expected-label",
+				"releaseOverride":        "productionOverridden",
+				"extraLabels.firstLabel": "expected-label",
 			},
 			ExpectedName:         "productionOverridden",
 			ExpectedRelease:      "production",
 			ExpectedStrategyType: appsV1.DeploymentStrategyType(""),
-			ExpectedLabels:	 map[string]string{
+			ExpectedLabels: map[string]string{
 				"firstLabel": "expected-label",
 			},
 		},
@@ -60,7 +60,7 @@ func TestDeploymentTemplate(t *testing.T) {
 			Release:  strings.Repeat("r", 80),
 
 			ExpectedErrorRegexp: regexp.MustCompile("Error: release name .* length must not be longer than 53"),
-			ExpectedLabels:	 nil,
+			ExpectedLabels:      nil,
 		},
 		{
 			CaseName: "strategyType",
@@ -71,7 +71,7 @@ func TestDeploymentTemplate(t *testing.T) {
 			ExpectedName:         "production",
 			ExpectedRelease:      "production",
 			ExpectedStrategyType: appsV1.RecreateDeploymentStrategyType,
-			ExpectedLabels:	 nil,
+			ExpectedLabels:       nil,
 		},
 	} {
 		t.Run(tc.CaseName, func(t *testing.T) {
@@ -93,8 +93,8 @@ func TestDeploymentTemplate(t *testing.T) {
 
 			if tc.ExpectedErrorRegexp != nil {
 				return
-            }
-			
+			}
+
 			var deployment appsV1.Deployment
 			helm.UnmarshalK8SYaml(t, output, &deployment)
 
@@ -274,15 +274,15 @@ func TestDeploymentTemplate(t *testing.T) {
 
 	// ImagePullSecrets
 	for _, tc := range []struct {
-		CaseName                   string
-		Release                    string
-		Values                     map[string]string
-		ExpectedImagePullSecrets   []coreV1.LocalObjectReference
+		CaseName                 string
+		Release                  string
+		Values                   map[string]string
+		ExpectedImagePullSecrets []coreV1.LocalObjectReference
 	}{
 		{
 			CaseName: "default secret",
 			Release:  "production",
-			Values: map[string]string{},
+			Values:   map[string]string{},
 			ExpectedImagePullSecrets: []coreV1.LocalObjectReference{
 				{
 					Name: "gitlab-registry",
@@ -352,16 +352,16 @@ func TestDeploymentTemplate(t *testing.T) {
 
 	// podAnnotations
 	for _, tc := range []struct {
-		CaseName                   string
-		Values                     map[string]string
-		Release 				   string
-		ExpectedPodAnnotations     map[string]string
+		CaseName               string
+		Values                 map[string]string
+		Release                string
+		ExpectedPodAnnotations map[string]string
 	}{
 		{
 			CaseName: "one podAnnotations",
 			Release:  "production",
 			Values: map[string]string{
-				"podAnnotations.firstAnnotation":    "expected-annotation",
+				"podAnnotations.firstAnnotation": "expected-annotation",
 			},
 			ExpectedPodAnnotations: map[string]string{
 				"checksum/application-secrets": "",
@@ -374,8 +374,8 @@ func TestDeploymentTemplate(t *testing.T) {
 			CaseName: "multiple podAnnotations",
 			Release:  "production",
 			Values: map[string]string{
-				"podAnnotations.firstAnnotation":    "expected-annotation",
-				"podAnnotations.secondAnnotation":   "expected-annotation",
+				"podAnnotations.firstAnnotation":  "expected-annotation",
+				"podAnnotations.secondAnnotation": "expected-annotation",
 			},
 			ExpectedPodAnnotations: map[string]string{
 				"checksum/application-secrets": "",
@@ -388,7 +388,7 @@ func TestDeploymentTemplate(t *testing.T) {
 		{
 			CaseName: "no podAnnotations",
 			Release:  "production",
-			Values: map[string]string{},
+			Values:   map[string]string{},
 			ExpectedPodAnnotations: map[string]string{
 				"checksum/application-secrets": "",
 				"app.gitlab.com/app":           "auto-devops-examples/minimal-ruby-app",
@@ -617,7 +617,7 @@ func TestDeploymentTemplate(t *testing.T) {
 						Port:   intstr.FromInt(1234),
 						Scheme: coreV1.URISchemeHTTP,
 						HTTPHeaders: []coreV1.HTTPHeader{
-							coreV1.HTTPHeader{
+							{
 								Name:  "custom-header",
 								Value: "awesome",
 							},
@@ -666,7 +666,7 @@ func TestDeploymentTemplate(t *testing.T) {
 						Port:   intstr.FromInt(2345),
 						Scheme: coreV1.URISchemeHTTP,
 						HTTPHeaders: []coreV1.HTTPHeader{
-							coreV1.HTTPHeader{
+							{
 								Name:  "custom-header",
 								Value: "awesome",
 							},
@@ -716,7 +716,7 @@ func TestDeploymentTemplate(t *testing.T) {
 						Port:   intstr.FromInt(2345),
 						Scheme: coreV1.URISchemeHTTP,
 						HTTPHeaders: []coreV1.HTTPHeader{
-							coreV1.HTTPHeader{
+							{
 								Name:  "custom-header",
 								Value: "awesome",
 							},
@@ -848,9 +848,9 @@ func TestDeploymentTemplate(t *testing.T) {
 		ExpectedDnsConfig *coreV1.PodDNSConfig
 	}{
 		{
-			CaseName:            "default dnsConfig",
-			Release:             "production",
-			ExpectedDnsConfig:   nil,
+			CaseName:          "default dnsConfig",
+			Release:           "production",
+			ExpectedDnsConfig: nil,
 		},
 		{
 			CaseName: "dnsConfig with different DNS",
@@ -862,7 +862,7 @@ func TestDeploymentTemplate(t *testing.T) {
 
 			ExpectedDnsConfig: &coreV1.PodDNSConfig{
 				Nameservers: []string{"1.2.3.4"},
-				Options:     []coreV1.PodDNSConfigOption{
+				Options: []coreV1.PodDNSConfigOption{
 					{
 						Name: "edns0",
 					},
@@ -906,7 +906,7 @@ func TestDeploymentTemplate(t *testing.T) {
 		{
 			CaseName: "default",
 			Release:  "production",
-			Values: map[string]string{},
+			Values:   map[string]string{},
 
 			ExpectedResources: coreV1.ResourceRequirements{
 				Limits:   coreV1.ResourceList(nil),
@@ -924,11 +924,11 @@ func TestDeploymentTemplate(t *testing.T) {
 			},
 
 			ExpectedResources: coreV1.ResourceRequirements{
-				Limits:   coreV1.ResourceList{
-					"cpu": resource.MustParse("500m"),
-					"memory": resource.MustParse("4Gi"),},
+				Limits: coreV1.ResourceList{
+					"cpu":    resource.MustParse("500m"),
+					"memory": resource.MustParse("4Gi")},
 				Requests: coreV1.ResourceList{
-					"cpu": resource.MustParse("200m"),
+					"cpu":    resource.MustParse("200m"),
 					"memory": resource.MustParse("2Gi"),
 				},
 			},
@@ -954,7 +954,7 @@ func TestDeploymentTemplate(t *testing.T) {
 			var deployment appsV1.Deployment
 			helm.UnmarshalK8SYaml(t, output, &deployment)
 
-			require.Equal(t, tc.ExpectedResources, deployment.Spec.Template.Spec.Containers[0].Resources )
+			require.Equal(t, tc.ExpectedResources, deployment.Spec.Template.Spec.Containers[0].Resources)
 		})
 	}
 
@@ -1214,11 +1214,11 @@ func TestServiceExtraPortServicePortDefinition(t *testing.T) {
 			name:       "with extra ports service port",
 			valueFiles: []string{"../testdata/service-definition.yaml"},
 			expectedPorts: []coreV1.ContainerPort{
-				coreV1.ContainerPort{
+				{
 					Name:          "web",
 					ContainerPort: 5000,
 				},
-				coreV1.ContainerPort{
+				{
 					Name:          "port-443",
 					ContainerPort: 443,
 					Protocol:      "TCP",
@@ -1262,7 +1262,7 @@ func TestDeploymentTemplateWithVolumeMounts(t *testing.T) {
 			name:       "with volume mounts",
 			valueFiles: []string{"../testdata/volume-mounts.yaml"},
 			expectedVolumes: []coreV1.Volume{
-				coreV1.Volume{
+				{
 					Name: "log-dir",
 					VolumeSource: coreV1.VolumeSource{
 						PersistentVolumeClaim: &coreV1.PersistentVolumeClaimVolumeSource{
@@ -1270,7 +1270,7 @@ func TestDeploymentTemplateWithVolumeMounts(t *testing.T) {
 						},
 					},
 				},
-				coreV1.Volume{
+				{
 					Name: "config",
 					VolumeSource: coreV1.VolumeSource{
 						PersistentVolumeClaim: &coreV1.PersistentVolumeClaimVolumeSource{
@@ -1280,11 +1280,11 @@ func TestDeploymentTemplateWithVolumeMounts(t *testing.T) {
 				},
 			},
 			expectedVolumeMounts: []coreV1.VolumeMount{
-				coreV1.VolumeMount{
+				{
 					Name:      "log-dir",
 					MountPath: "/log",
 				},
-				coreV1.VolumeMount{
+				{
 					Name:      "config",
 					MountPath: "/app-config",
 					SubPath:   "config.txt",
@@ -1295,7 +1295,7 @@ func TestDeploymentTemplateWithVolumeMounts(t *testing.T) {
 			name:       "with extra volume mounts",
 			valueFiles: []string{"../testdata/extra-volume-mounts.yaml"},
 			expectedVolumes: []coreV1.Volume{
-				coreV1.Volume{
+				{
 					Name: "config-volume",
 					VolumeSource: coreV1.VolumeSource{
 						ConfigMap: &coreV1.ConfigMapVolumeSource{
@@ -1308,7 +1308,7 @@ func TestDeploymentTemplateWithVolumeMounts(t *testing.T) {
 						},
 					},
 				},
-				coreV1.Volume{
+				{
 					Name: "test-host-path",
 					VolumeSource: coreV1.VolumeSource{
 						HostPath: &coreV1.HostPathVolumeSource{
@@ -1317,7 +1317,7 @@ func TestDeploymentTemplateWithVolumeMounts(t *testing.T) {
 						},
 					},
 				},
-				coreV1.Volume{
+				{
 					Name: "secret-volume",
 					VolumeSource: coreV1.VolumeSource{
 						Secret: &coreV1.SecretVolumeSource{
@@ -1327,17 +1327,17 @@ func TestDeploymentTemplateWithVolumeMounts(t *testing.T) {
 				},
 			},
 			expectedVolumeMounts: []coreV1.VolumeMount{
-				coreV1.VolumeMount{
+				{
 					Name:      "config-volume",
 					MountPath: "/app/config.yaml",
 					SubPath:   "config.yaml",
 				},
-				coreV1.VolumeMount{
+				{
 					Name:      "test-host-path",
 					MountPath: "/etc/ssl/certs/",
 					ReadOnly:  true,
 				},
-				coreV1.VolumeMount{
+				{
 					Name:      "secret-volume",
 					MountPath: "/etc/specialSecret",
 					ReadOnly:  true,
@@ -1348,7 +1348,7 @@ func TestDeploymentTemplateWithVolumeMounts(t *testing.T) {
 			name:       "with extra volume mounts and persistence",
 			valueFiles: []string{"../testdata/mix-volume-mounts.yaml"},
 			expectedVolumes: []coreV1.Volume{
-				coreV1.Volume{
+				{
 					Name: "log-dir",
 					VolumeSource: coreV1.VolumeSource{
 						PersistentVolumeClaim: &coreV1.PersistentVolumeClaimVolumeSource{
@@ -1356,7 +1356,7 @@ func TestDeploymentTemplateWithVolumeMounts(t *testing.T) {
 						},
 					},
 				},
-				coreV1.Volume{
+				{
 					Name: "config-volume",
 					VolumeSource: coreV1.VolumeSource{
 						ConfigMap: &coreV1.ConfigMapVolumeSource{
@@ -1371,11 +1371,11 @@ func TestDeploymentTemplateWithVolumeMounts(t *testing.T) {
 				},
 			},
 			expectedVolumeMounts: []coreV1.VolumeMount{
-				coreV1.VolumeMount{
+				{
 					Name:      "log-dir",
 					MountPath: "/log",
 				},
-				coreV1.VolumeMount{
+				{
 					Name:      "config-volume",
 					MountPath: "/app/config.yaml",
 					SubPath:   "config.yaml",
@@ -1526,12 +1526,27 @@ func TestDeploymentTemplateWithExtraEnvFrom(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "test with extra env from secret using templating values",
+			values: map[string]string{
+				"extraEnvFrom[0].secretRef.name": "secret-name-{{ .Release.Name }}",
+			},
+			expectedEnvFrom: coreV1.EnvFromSource{
+				SecretRef: &coreV1.SecretEnvSource{
+					LocalObjectReference: coreV1.LocalObjectReference{
+						Name: "secret-name-" + releaseName,
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
+			namespaceName := "test-namespace-" + strings.ToLower(random.UniqueId())
 			opts := &helm.Options{
-				SetValues: tc.values,
+				SetValues:      tc.values,
+				KubectlOptions: k8s.NewKubectlOptions("", "", namespaceName),
 			}
 			output := mustRenderTemplate(t, opts, releaseName, templates, nil)
 
@@ -1616,8 +1631,8 @@ func TestDeploymentTemplateWithContainerSecurityContext(t *testing.T) {
 	templates := []string{"templates/deployment.yaml"}
 
 	tcs := []struct {
-		name																string
-		values				                      map[string]string
+		name                                string
+		values                              map[string]string
 		expectedSecurityContextCapabilities []coreV1.Capability
 	}{
 		{

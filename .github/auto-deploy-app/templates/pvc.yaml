@@ -20,5 +20,8 @@ spec:
   {{- if $volume.claim.storageClass }}
   storageClassName: {{ $volume.claim.storageClass | quote }}
   {{- end }}
+  {{- if $volume.claim.volumeName }}
+  volumeName: {{ $volume.claim.volumeName | quote }}
+  {{- end }}
 {{- end }}
 {{- end -}}
