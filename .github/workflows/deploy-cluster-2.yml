@@ -65,6 +65,10 @@ on:
         required: false
         type: boolean
         default: true
+      do_not_generate_additional_host_names:
+        required: false
+        type: string
+        default: 'false'
     secrets:
       C2_KUBE_CONFIG:
         description: 'The kubctl config file with credentials to access the your kubernetes'
@@ -192,8 +196,15 @@ jobs:
           enabled: true
           name: "web"
           url: "\$public_url"
+        EOF
+        if [ '${{ inputs.do_not_generate_additional_host_names }}x' = 'falsex' ]
+        then
+        cat >> tmp-auto-deploy-values.yaml <<EOF
           additionalHosts:
             - \${app_name_in_url}-\${ref_name}.\${kube_ingress_base_domain}
+        EOF
+        fi
+        cat >> tmp-auto-deploy-values.yaml <<EOF
           type: ClusterIP
           externalPort: ${{ inputs.default_port }}
           internalPort: ${{ inputs.default_port }}
