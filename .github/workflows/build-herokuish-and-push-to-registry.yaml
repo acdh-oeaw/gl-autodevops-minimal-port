@@ -101,7 +101,8 @@ jobs:
           FROM $herokuish_base_image as builder
           COPY . /tmp/app
           ARG BUILDPACK_URL
-          ENV USER=herokuishuser
+          ENV USER=herokuishuser \
+              CI=true
           RUN --mount=type=secret,id=secrets_env,dst=/secrets_env \
               --mount=type=cache,target=/tmp/cache \
               if [ -f /secrets_env ]; then . /secrets_env; fi; \
