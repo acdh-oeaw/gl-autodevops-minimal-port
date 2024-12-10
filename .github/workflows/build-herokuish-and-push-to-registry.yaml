@@ -23,6 +23,10 @@ on:
         required: false
         type: number
         default: 0
+      fetch-tags:
+        required: false
+        type: string
+        default: 'true'
       BUILDPACK_URL:
         required: false
         type: string
@@ -54,6 +58,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: ${{ inputs.fetch-depth }}
+          fetch-tags: ${{ inputs.fetch-tags }}
           submodules: ${{ inputs.submodules }}
 # CNB are not multi-arch ready as of May 2022 so this is not needed
 # It causes problems with this workflow so test later
