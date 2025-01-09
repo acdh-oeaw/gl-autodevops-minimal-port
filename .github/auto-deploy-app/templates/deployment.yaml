@@ -242,7 +242,7 @@ spec:
               value: {{ $httpHeader.value }}
 {{- end }}
 {{- end }}
-{{- else if eq .Values.readinessProbe.probeType "tcpSocket" }}
+{{- else if eq .Values.startupProbe.probeType "tcpSocket" }}
           tcpSocket:
             port: {{ .Values.startupProbe.port | default .Values.service.internalPort }}
 {{- else if eq .Values.startupProbe.probeType "exec" }}
