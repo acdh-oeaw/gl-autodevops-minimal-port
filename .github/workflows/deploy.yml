@@ -187,6 +187,7 @@ jobs:
           repository: \$repository
           tag: "\$tag"
           pullPolicy: Always
+          secrets: []
         extraLabels:
           "ID": "\$service_id"
         gitlab:
