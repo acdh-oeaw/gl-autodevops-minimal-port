@@ -104,6 +104,8 @@ jobs:
           push: true
           tags: |
             ${{ inputs.registry_root }}tests/${{ inputs.image_tagged || inputs.image_name }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
       - name: Create test services network
         run: |
           docker network create --internal test-services 
