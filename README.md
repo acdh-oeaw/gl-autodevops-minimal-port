@@ -226,14 +226,14 @@ service:
   name: "web"
   url: "$public_url"
   type: ClusterIP
-  externalPort: # the prot your app runs on
-  internalPort: # the prot your app runs on
+  externalPort: # the port your app runs on
+  internalPort: # the port your app runs on
 ingress:
   enabled: true
   path: "/"
   annotations:
     kubernetes.io/ingressClassName: "nginx"
-    #nginx.ingress.kubernetes.io/app-root: # the root if it is not /
+    #nginx.ingress.kubernetes.io/app-root: # the root route if it is not /
 livenessProbe:
   path: # path to your health check route, can be /
   initialDelaySeconds: 15
