@@ -208,6 +208,52 @@ The `auto-deploy-app` helm chart from gl we use can be tweaked in many ways with
 
 If you store your settings as `.github/auto-deploy-values.yaml` or `.gitlab/auto-deploy-values.yaml` in the root of your repoitory it will be picked up by the deployment script and used to customize the `auto-deploy-app` chart.
 
+Minimal code for your `auto-deploy-values.yaml`
+```yaml
+replicaCount: 1
+image:
+  repository: $repository
+  tag: "$tag"
+  pullPolicy: Always
+  secrets: []
+extraLabels:
+  "ID": "$service_id"
+gitlab:
+  app: "$app_name"
+  envURL: "$repo_url"
+service:
+  enabled: true
+  name: "web"
+  url: "$public_url"
+  type: ClusterIP
+  externalPort: # the prot your app runs on
+  internalPort: # the prot your app runs on
+ingress:
+  enabled: true
+  path: "/"
+  annotations:
+    kubernetes.io/ingressClassName: "nginx"
+    #nginx.ingress.kubernetes.io/app-root: # the root if it is not /
+livenessProbe:
+  path: # path to your health check route, can be /
+  initialDelaySeconds: 15
+  timeoutSeconds: 15
+  scheme: "HTTP"
+  probeType: "httpGet"
+readinessProbe:
+  path: # path to your health check route, can be /
+  initialDelaySeconds: 5
+  timeoutSeconds: 3
+  scheme: "HTTP"
+  probeType: "httpGet"
+```
+
+`$var` variables will be replaced with the current values for the action running at the moment.
+
+See also:
+* [auto-deploy-values.yaml created in deploy.yaml](https://github.com/acdh-oeaw/gl-autodevops-minimal-port/blob/main/.github/workflows/deploy.yml#L184-L234)
+* [possible $vars](https://github.com/acdh-oeaw/gl-autodevops-minimal-port/blob/main/.github/workflows/deploy.yml#L253)
+
 If you need to further customize deployment (like deploying an extra service like solr with your application) you can store a bundled helm chart in a directory `chart` in your repository and that will be used instead of the generic `auto-deploy-app` chart from this repository.
 
 [See also the gl documentation.](https://docs.gitlab.com/ee/topics/autodevops/customize.html#custom-helm-chart)
