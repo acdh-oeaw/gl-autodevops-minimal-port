@@ -31,6 +31,9 @@ on:
       POSTGRES_VERSION:
         required: false
         type: string
+      POSTGRES_REPOSITORY:
+        required: false
+        type: string
       POSTGRES_HOST:
         required: false
         type: string
@@ -138,18 +141,18 @@ jobs:
       # --set volumePermissions.enabled=true is only needed for older cotainers like 9.6(.16).
       # should be removed once only newer postgres versions are used
       run: |
-        helm repo add bitnami https://charts.bitnami.com/bitnami
-        helm upgrade --install --atomic --wait --version 12.2.2 \
+        helm upgrade --install --atomic --wait --version 16.7.27 \
           --set volumePermissions.enabled=true \
           --set fullnameOverride="${{ inputs.APP_NAME }}-postgres" \
           --set auth.username="${{ inputs.POSTGRES_USER || secrets.POSTGRES_USER || vars.POSTGRES_USER }}" \
           --set auth.password="${{ secrets.POSTGRES_PASSWORD }}" \
           --set auth.database="${{ inputs.POSTGRES_DB || secrets.POSTGRES_DB || vars.POSTGRES_DB }}" \
-          --set image.tag="${{ inputs.POSTGRES_VERSION || vars.POSTGRES_VERSION || '9.6.16' }}" \
+          --set image.repository="${{ inputs.POSTGRES_REGISTRY || vars.POSTGRES_REGISTRY || 'bitnamilegacy/postgresql' }}"
+          --set image.tag="${{ inputs.POSTGRES_VERSION || vars.POSTGRES_VERSION || '15.9.0' }}" \
           --set persistence.size="${{ inputs.POSTGRES_SIZE ||  vars.POSTGRES_SIZE || '1Gi' }}" \
           --namespace="${{ env.KUBE_NAMESPACE }}" \
           "${{ inputs.APP_NAME }}-postgres" \
-          bitnami/postgresql
+          oci://registry-1.docker.io/bitnamicharts/postgresql
         echo 'POSTGRES_ENABLED=${{ inputs.POSTGRES_ENABLED || vars.POSTGRES_ENABLED }}' >> $GITHUB_ENV
         echo 'POSTGRES_HOST=${{ inputs.APP_NAME }}-postgres' >> $GITHUB_ENV
         echo 'POSTGRES_USER=${{ inputs.POSTGRES_USER || secrets.POSTGRES_USER || vars.POSTGRES_USER }}' >> $GITHUB_ENV
