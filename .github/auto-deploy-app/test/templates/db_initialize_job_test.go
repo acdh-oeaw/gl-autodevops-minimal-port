@@ -22,7 +22,7 @@ func TestInitializeDatabaseUrlEnvironmentVariable(t *testing.T) {
 		Template            string
 	}{
 		{
-			CaseName: "present-db-intialize",
+			CaseName: "present-db-initialize",
 			Values: map[string]string{
 				"application.database_url":      "PRESENT",
 				"application.initializeCommand": "echo initialize",

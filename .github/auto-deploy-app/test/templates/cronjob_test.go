@@ -337,6 +337,87 @@ func TestCronjobLivenessAndReadiness(t *testing.T) {
 			ExpectedLivenessProbe:  tcpLivenessProbe(),
 			ExpectedReadinessProbe: defaultReadinessProbe(),
 		},
+		{
+			CaseName: "disabled liveness probe and default readiness probe",
+			Release:  "production",
+			Values: map[string]string{
+				"cronjobs.job1.livenessProbe.port":      "5000",
+				"cronjobs.job1.livenessProbe.probeType": "tcpSocket",
+				"cronjobs.job1.livenessProbe.enabled":   "false",
+				"cronjobs.job2.livenessProbe.port":      "5000",
+				"cronjobs.job2.livenessProbe.probeType": "tcpSocket",
+				"cronjobs.job2.livenessProbe.enabled":   "false",
+			},
+
+			ExpectedLivenessProbe:  nil,
+			ExpectedReadinessProbe: defaultReadinessProbe(),
+		},
+		{
+			CaseName: "disabled liveness probe and enabled readiness probe",
+			Release:  "production",
+			Values: map[string]string{
+				"cronjobs.job1.livenessProbe.port":       "5000",
+				"cronjobs.job1.livenessProbe.probeType":  "tcpSocket",
+				"cronjobs.job1.livenessProbe.enabled":    "false",
+				"cronjobs.job1.readinessProbe.port":      "5000",
+				"cronjobs.job1.readinessProbe.probeType": "tcpSocket",
+				"cronjobs.job1.readinessProbe.enabled":   "true",
+				"cronjobs.job2.livenessProbe.port":       "5000",
+				"cronjobs.job2.livenessProbe.probeType":  "tcpSocket",
+				"cronjobs.job2.livenessProbe.enabled":    "false",
+				"cronjobs.job2.readinessProbe.port":      "5000",
+				"cronjobs.job2.readinessProbe.probeType": "tcpSocket",
+				"cronjobs.job2.readinessProbe.enabled":   "true",
+			},
+
+			ExpectedLivenessProbe:  nil,
+			ExpectedReadinessProbe: tcpReadinessProbe(),
+		},
+		{
+			CaseName: "default liveness probe disabled",
+			Release:  "production",
+			Values: map[string]string{
+				"livenessProbe.enabled": "false",
+				"cronjobs.job1.readinessProbe.port":      "5000",
+				"cronjobs.job1.readinessProbe.probeType": "tcpSocket",
+				"cronjobs.job1.readinessProbe.enabled":   "true",
+				"cronjobs.job2.readinessProbe.port":      "5000",
+				"cronjobs.job2.readinessProbe.probeType": "tcpSocket",
+				"cronjobs.job2.readinessProbe.enabled":   "true",
+			},
+
+			ExpectedLivenessProbe:  nil,
+			ExpectedReadinessProbe: tcpReadinessProbe(),
+		},
+		{
+			CaseName: "default readiness probe disabled",
+			Release:  "production",
+			Values: map[string]string{
+				"readinessProbe.enabled": "false",
+				"cronjobs.job1.livenessProbe.port":      "5000",
+				"cronjobs.job1.livenessProbe.probeType": "tcpSocket",
+				"cronjobs.job1.livenessProbe.enabled":   "true",
+				"cronjobs.job2.livenessProbe.port":      "5000",
+				"cronjobs.job2.livenessProbe.probeType": "tcpSocket",
+				"cronjobs.job2.livenessProbe.enabled":   "true",
+			},
+
+			ExpectedLivenessProbe:  tcpLivenessProbe(),
+			ExpectedReadinessProbe: nil,
+		},
+		{
+			CaseName: "all default probes disabled",
+			Release:  "production",
+			Values: map[string]string{
+				"cronjobs.job1.command[0]": "echo",
+				"cronjobs.job2.args[0]":    "hello",
+				"readinessProbe.enabled":   "false",
+				"livenessProbe.enabled":    "false",
+			},
+
+			ExpectedLivenessProbe:  nil,
+			ExpectedReadinessProbe: nil,
+		},
 	} {
 		t.Run(tc.CaseName, func(t *testing.T) {
 			namespaceName := "minimal-ruby-app-" + strings.ToLower(random.UniqueId())

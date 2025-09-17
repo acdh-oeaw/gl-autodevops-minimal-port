@@ -147,7 +147,7 @@ items:
               - name: "{{ $.Values.service.name }}"
                 containerPort: {{ $.Values.service.internalPort }}
               {{- with $livenessProbeConfig := default $.Values.livenessProbe $jobConfig.livenessProbe }}
-              {{- if $livenessProbeConfig }}
+              {{- if and ($livenessProbeConfig) (or ($livenessProbeConfig.enabled) (not (hasKey $livenessProbeConfig "enabled")))  }}
               livenessProbe:
               {{- if eq $livenessProbeConfig.probeType "httpGet" }}
                 httpGet:
@@ -169,7 +169,7 @@ items:
               {{- end }}
               {{- end }}
               {{- with $readinessProbe := default $.Values.readinessProbe  $jobConfig.readinessProbe }}
-              {{- if $readinessProbe  }}
+              {{- if and ($readinessProbe) (or ($readinessProbe.enabled) (not (hasKey $readinessProbe "enabled"))) }}
               readinessProbe:
                 {{- if eq $readinessProbe.probeType "httpGet" }}
                 httpGet:

@@ -1094,6 +1094,60 @@ func TestWorkerDeploymentTemplate(t *testing.T) {
 			},
 		},
 		{
+			CaseName: "default liveness and readiness probes are disabled",
+			Release:  "production",
+			Values: map[string]string{
+				"livenessProbe.enabled": "false",
+				"readinessProbe.enabled": "false",
+				"workers.worker1.command[0]": "echo",
+				"workers.worker1.command[1]": "worker1",
+				"workers.worker2.command[0]": "echo",
+				"workers.worker2.command[1]": "worker2",
+			},
+			ExpectedDeployments: []workerDeploymentTestCase{
+				{
+					ExpectedName:           "production-worker1",
+					ExpectedCmd:            []string{"echo", "worker1"},
+					ExpectedLivenessProbe:  nil,
+					ExpectedReadinessProbe: nil,
+				},
+				{
+					ExpectedName:           "production-worker2",
+					ExpectedCmd:            []string{"echo", "worker2"},
+					ExpectedLivenessProbe:  nil,
+					ExpectedReadinessProbe: nil,
+				},
+			},
+		},
+		{
+			CaseName: "worker level liveness and readiness probes are disabled",
+			Release:  "production",
+			Values: map[string]string{
+				"workers.worker1.livenessProbe.enabled": "false",
+				"workers.worker1.readinessProbe.enabled": "false",
+				"workers.worker1.command[0]": "echo",
+				"workers.worker1.command[1]": "worker1",
+				"workers.worker2.livenessProbe.enabled": "false",
+				"workers.worker2.readinessProbe.enabled": "false",
+				"workers.worker2.command[0]": "echo",
+				"workers.worker2.command[1]": "worker2",
+			},
+			ExpectedDeployments: []workerDeploymentTestCase{
+				{
+					ExpectedName:           "production-worker1",
+					ExpectedCmd:            []string{"echo", "worker1"},
+					ExpectedLivenessProbe:  nil,
+					ExpectedReadinessProbe: nil,
+				},
+				{
+					ExpectedName:           "production-worker2",
+					ExpectedCmd:            []string{"echo", "worker2"},
+					ExpectedLivenessProbe:  nil,
+					ExpectedReadinessProbe: nil,
+				},
+			},
+		},
+		{
 			CaseName: "enableWorkerLivenessProbe",
 			Release:  "production",
 			Values: map[string]string{

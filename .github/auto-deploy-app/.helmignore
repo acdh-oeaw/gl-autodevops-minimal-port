@@ -1,0 +1,3 @@
+.helmignore
+test/
+go*.linux-amd64.tar.gz

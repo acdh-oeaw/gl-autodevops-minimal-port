@@ -136,8 +136,8 @@
 | cronjob.job.restartPolicy                   | Possible values: `Always`, `OnFailure` and `Never` | `OnFailure` |
 | cronjob.job.extraVolumes | This field allows to add extra volumes to CronJob Pods. | `[]` |
 | cronjob.job.extraVolumeMounts | This field allows to add extra volume mounts to CronJob Pods. | `[]` |
-| cronjob.job.livenessProbe           | If defined, enables livenessProbe in the cronjob. If not defined, it uses top-level `livenessProbe` setting to the job. (To see details about the default probes check values.yaml) | |
-| cronjob.job.readinessProbe           | If defined, enables readinessProbe in the cronjob. If not defined, it uses top-level `readinessProbe` setting to the job. (To see details about the default probes check values.yaml) | |
+| cronjob.job.livenessProbe | Define a custom `livenessProbe` for the worker. If not specified, uses the top-level `livenessProbe` setting. Setting `cronjob.job.livenessProbe.enabled: false` disables the probe altogether for this job. |  |
+| cronjob.job.readinessProbe | Define a custom `readinessProbe` for the worker. If not specified, uses the top-level `readinessProbe` setting. Setting `cronjob.job.readinessProbe.enabled: false` disables the probe altogether for this job. |  |
 | cronjob.activeDeadlineSeconds           | Alternative to terminate a Job: Once a Job reaches `activeDeadlineSeconds` value, all of its running Pods are terminated and the Job status will become `type: Failed` with `reason: DeadlineExceeded` | `nil` |
 | customResources | This field allows to add custom resources to your Deployment. | `[]` |
 | workers                       | Define your workers in this section, an example of the definition can be found in values.yaml | `nil` |
@@ -145,3 +145,5 @@
 | worker.image.tag              |             | `stable`                           |
 | worker.image.pullPolicy       |             | `Always`                           |
 | worker.image.secrets          |             | `[name: gitlab-registry]`          |
+| worker.livenessProbe | Define a custom `livenessProbe` for the worker. If not specified, uses the top-level `livenessProbe` setting. Setting `worker.livenessProbe.enabled: false` disables the probe altogether for this worker. |  |
+| worker.readinessProbe | Define a custom `readinessProbe` for the worker. If not specified, uses the top-level `readinessProbe` setting. Setting `worker.readinessProbe.enabled: false` disables the probe altogether for this worker. |  |
