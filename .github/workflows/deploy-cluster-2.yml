@@ -144,7 +144,7 @@ jobs:
           --set auth.username="${{ inputs.POSTGRES_USER || secrets.POSTGRES_USER || vars.POSTGRES_USER }}" \
           --set auth.password="${{ secrets.POSTGRES_PASSWORD }}" \
           --set auth.database="${{ inputs.POSTGRES_DB || secrets.POSTGRES_DB || vars.POSTGRES_DB }}" \
-          --set image.repository="${{ inputs.POSTGRES_REGISTRY || vars.POSTGRES_REGISTRY || 'bitnamilegacy/postgresql' }}"
+          --set image.repository="${{ inputs.POSTGRES_REGISTRY || vars.POSTGRES_REGISTRY || 'bitnamilegacy/postgresql' }}" \
           --set image.tag="${{ inputs.POSTGRES_VERSION || vars.POSTGRES_VERSION || '15.9.0' }}" \
           --set persistence.size="${{ inputs.POSTGRES_SIZE ||  vars.POSTGRES_SIZE || '1Gi' }}" \
           --namespace="${{ env.KUBE_NAMESPACE }}" \
