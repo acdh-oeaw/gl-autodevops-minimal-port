@@ -15,7 +15,7 @@ on:
       herokuish_base_image:
         required: false
         type: string
-        default: gliderlabs/herokuish:latest-22
+        default: gliderlabs/herokuish:latest-24
       default_port:
         required: true
         type: string
