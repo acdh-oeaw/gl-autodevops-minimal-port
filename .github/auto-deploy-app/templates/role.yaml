@@ -1,0 +1,22 @@
+{{- if .Values.roles }}
+apiVersion: v1
+kind: List
+items:
+{{- range $roleName, $roleConfig:= .Values.roles }}
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: Role
+  metadata:
+    name: {{ $roleName | quote }}
+    annotations:
+      {{- if $.Values.gitlab.app }}
+      app.gitlab.com/app: {{ $.Values.gitlab.app | quote }}
+      {{- end }}
+      {{- if $.Values.gitlab.env }}
+      app.gitlab.com/env: {{ $.Values.gitlab.env | quote }}
+      {{- end }}
+    labels:
+{{ include "sharedlabels" $ | indent 6 }}
+  rules:
+{{ toYaml $roleConfig.rules | indent 2 }}
+{{- end }}
+{{- end }}

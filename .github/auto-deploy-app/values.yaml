@@ -177,6 +177,31 @@ networkPolicy:
               matchLabels:
                 app.gitlab.com/managed_by: gitlab
 
+roles: { }
+#  role-name:
+#    rules:
+#      - apiGroups: [""]
+#        resources:
+#          - pods
+#        verbs:
+#          - list
+#          - get
+#          - watch
+#      - apiGroups: [""]
+#        resources:
+#          - pods/logs
+#        verbs:
+#          - list
+#          - get
+
+roleBindings: { }
+#  role-binding-name:
+#    roleRefName: role-name
+#    subjects:
+#      - kind: ServiceAccount
+#        name: "{{ $.Values.serviceAccount.name }}"
+#        namespace: "{{ .Release.Namespace }}"
+
 serviceAccount:
   name:
   annotations: { }
