@@ -64,6 +64,10 @@ on:
         required: false
         type: string
         default: 'false'
+      container_tags_prefix:
+        required: false
+        type: string
+        default: ''
       do_deploy:
         required: false
         type: boolean
@@ -132,6 +136,8 @@ jobs:
       id: meta
       uses: docker/metadata-action@v5
       with:
+        flavor: |
+          prefix=${{ inputs.container_tags_prefix }}
         images: |
           ${{ inputs.DOCKER_TAG }}
         tags: |

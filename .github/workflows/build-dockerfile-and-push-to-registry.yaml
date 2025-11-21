@@ -39,6 +39,10 @@ on:
         required: false
         type: string
         default: 'false'
+      container_tags_prefix:
+        required: false
+        type: string
+        default: ''
       PUBLIC_URL:
         required: false
         type: string
@@ -63,7 +67,7 @@ jobs:
     permissions:
       packages: write
       contents: read
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     environment: ${{ inputs.environment }}
     steps:
       - name: Checkout
@@ -84,6 +88,8 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
+          flavor: |
+            prefix=${{ inputs.container_tags_prefix }}
           images: |
             ${{ inputs.registry_root }}${{ inputs.image_tagged || inputs.image_name }}
           tags: |
