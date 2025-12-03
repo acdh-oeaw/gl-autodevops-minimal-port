@@ -176,9 +176,14 @@ jobs:
           path: |
             tmp/cache
           key: ${{ steps.cache-buildpack-restore.outputs.cache-primary-key }}
+      - name: Generate artifact name
+        if: always()
+        id: gen_name
+        run: |
+          echo -n "rand_name=test-artifacts-$(shuf -er -n8  {A..Z} {a..z} {0..9} | tr -d '\n')" >> $GITHUB_OUTPUT        
       - name: Store test artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: test-artifacts-${{ github.run_id }}${{ github.run_number }}${{ github.run_attempt }}
+          name: ${{ steps.gen_name.outputs.rand_name }}
           path: output
