@@ -184,5 +184,5 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: test-artifacts
+          name: test-artifacts-${{ github.run_id }}${{ github.run_number }}${{ github.run_attempt }}
           path: output
