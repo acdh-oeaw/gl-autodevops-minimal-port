@@ -81,6 +81,11 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Generate unique run name
+        if: always()
+        id: gen_name
+        run: |
+          echo -n "rand_name=$(echo -n "${{ github.ref_name }}" | sed 's/feat\(ure\)\{0,1\}[_/]//' | tr '_' '-' | tr '[:upper:]' '[:lower:]' | cut -c -63 )"-$(shuf -er -n8  {A..Z} {a..z} {0..9} | tr -d '\n')" >> $GITHUB_OUTPUT       
       - name: Set up tests herokuish and heroku buildpack
         run: |
           herokuish_base_image="${{ inputs.herokuish_base_image }}"
@@ -132,8 +137,8 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: |
-            tmp/cache
-          key: ${{ runner.os }}-buildpack-cache
+            tmp/cache-${{ steps.gen_name.outputs.rand_name }}
+          key: ${{ runner.os }}-tests-buildpack-cache
       - name: Run tests using herokuish and heroku buildpack (DB credentials in DATABASE_URL)
         env:
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
@@ -155,7 +160,7 @@ jobs:
             --env-file secrets.env \
             -e DATABASE_URL=postgres://${{ inputs.POSTGRES_USER }}:${{ inputs.PGPASSWORD }}@postgres:5432/${{ inputs.POSTGRES_DB }} \
             -e NODE_PORT=8080 \
-            -v $(pwd)/tmp/cache:/tmp/cache \
+            -v $(pwd)/tmp/cache-${{ steps.gen_name.outputs.rand_name }}:/tmp/cache \
             ${{ inputs.registry_root }}tests/${{ inputs.image_tagged || inputs.image_name }}:${{ github.sha }} \
             /bin/herokuish buildpack test
           docker network connect test-services test-run-step
@@ -174,16 +179,11 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: |
-            tmp/cache
-          key: ${{ steps.cache-buildpack-restore.outputs.cache-primary-key }}
-      - name: Generate artifact name
-        if: always()
-        id: gen_name
-        run: |
-          echo -n "rand_name=test-artifacts-$(shuf -er -n8  {A..Z} {a..z} {0..9} | tr -d '\n')" >> $GITHUB_OUTPUT        
+            tmp/cache-${{ steps.gen_name.outputs.rand_name }}
+          key: ${{ steps.cache-buildpack-restore.outputs.cache-primary-key }} 
       - name: Store test artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ${{ steps.gen_name.outputs.rand_name }}
+          name: test-artifacts-${{ steps.gen_name.outputs.rand_name }}
           path: output
