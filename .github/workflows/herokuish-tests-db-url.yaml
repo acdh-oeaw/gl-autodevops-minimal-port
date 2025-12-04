@@ -85,7 +85,7 @@ jobs:
         if: always()
         id: gen_name
         run: |
-          echo -n "rand_name=$(echo -n "${{ github.ref_name }}" | sed 's/feat\(ure\)\{0,1\}[_/]//' | tr '_' '-' | tr '[:upper:]' '[:lower:]' | cut -c -63 )"-$(shuf -er -n8  {A..Z} {a..z} {0..9} | tr -d '\n')" >> $GITHUB_OUTPUT       
+          echo -n "rand_name=$(echo -n "${{ github.ref_name }}" | sed 's/feat\(ure\)\{0,1\}[_/]//' | tr '_' '-' | tr '[:upper:]' '[:lower:]' | cut -c -63 )-$(shuf -er -n8  {A..Z} {a..z} {0..9} | tr -d '\n')" >> $GITHUB_OUTPUT       
       - name: Set up tests herokuish and heroku buildpack
         run: |
           herokuish_base_image="${{ inputs.herokuish_base_image }}"
