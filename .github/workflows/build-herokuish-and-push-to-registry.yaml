@@ -63,6 +63,7 @@ jobs:
         with:
           fetch-depth: ${{ inputs.fetch-depth }}
           fetch-tags: ${{ inputs.fetch-tags }}
+          ref: ${{ github.ref }}
           submodules: ${{ inputs.submodules }}
 # CNB are not multi-arch ready as of May 2022 so this is not needed
 # It causes problems with this workflow so test later
