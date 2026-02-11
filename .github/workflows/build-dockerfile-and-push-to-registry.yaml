@@ -75,6 +75,7 @@ jobs:
         with:
           fetch-depth: ${{ inputs.fetch-depth }}
           fetch-tags: ${{ inputs.fetch-tags }}
+          ref: ${{ github.ref }}
           submodules: ${{ inputs.submodules }}
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
