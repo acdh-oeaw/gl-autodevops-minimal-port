@@ -119,6 +119,7 @@ jobs:
       name: Checkout
       with:
         path: caller
+        ref: ${{ github.ref }}
         submodules: ${{ inputs.submodules }}
     - name: Kubernetes credentials
       run: |
