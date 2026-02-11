@@ -110,12 +110,12 @@ jobs:
       name: ${{ inputs.environment }}
       url: ${{ inputs.PUBLIC_URL || vars.PUBLIC_URL }}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       name: Checkout gl-autodevops-minimal
       with:
         repository: ${{ github.repository_owner }}/gl-autodevops-minimal-port
 # This step will have access to the sources of the caller in a sub directory!
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       name: Checkout
       with:
         path: caller
@@ -332,7 +332,7 @@ jobs:
           --set application.secretName="${{ inputs.APP_NAME }}" ${{ secrets.HELM_UPGRADE_EXTRA_ARGS || vars.HELM_UPGRADE_EXTRA_ARGS }} \
         $chart  
     - name: auto-deploy-values.yaml
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       if: always()
       with:
         name: ${{ inputs.APP_NAME }}-auto-deploy-values-yaml

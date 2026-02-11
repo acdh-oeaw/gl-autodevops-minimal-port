@@ -73,7 +73,7 @@ jobs:
       contents: read
     steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: ${{ inputs.submodules }}
       - name: Login to GitHub Container Registry
@@ -135,7 +135,7 @@ jobs:
            bash psql-test.sh
       - name: Restore cached buildpack versions
         id: cache-buildpack-restore
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: |
             tmp/cache-${{ steps.gen_name.outputs.rand_name }}
@@ -180,13 +180,13 @@ jobs:
       - name: Save buildpack versions
         if: always()
         id: cache-buildpack-save
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: |
             tmp/cache-${{ steps.gen_name.outputs.rand_name }}
           key: ${{ steps.cache-buildpack-restore.outputs.cache-primary-key }} 
       - name: Store test artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: test-artifacts-${{ steps.gen_name.outputs.rand_name }}
