@@ -231,8 +231,8 @@ service:
 ingress:
   enabled: true
   path: "/"
+  className: "nginx"
   annotations:
-    kubernetes.io/ingressClassName: "nginx"
     #nginx.ingress.kubernetes.io/app-root: # the root route if it is not /
 livenessProbe:
   path: # path to your health check route, can be /
