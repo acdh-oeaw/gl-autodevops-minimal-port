@@ -139,7 +139,7 @@ jobs:
         kubectl get pod
     - name: Create tags based on git data
       id: meta
-      uses: docker/metadata-action@v5
+      uses: docker/metadata-action@v6
       with:
         flavor: |
           prefix=${{ inputs.container_tags_prefix }}
