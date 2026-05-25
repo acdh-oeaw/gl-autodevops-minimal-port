@@ -48,6 +48,10 @@ on:
       POSTGRES_SIZE:
         required: false
         type: string
+      POSTGRES_RESOURCES_PRESET:
+        required: false
+        description: 'Database resource settings preset: nano, micro, *small*, medium, large, xlarge, 2xlarge'
+        type: string
       environment:
         required: false
         type: string
@@ -110,15 +114,16 @@ jobs:
       name: ${{ inputs.environment }}
       url: ${{ inputs.PUBLIC_URL || vars.PUBLIC_URL }}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       name: Checkout gl-autodevops-minimal
       with:
         repository: ${{ github.repository_owner }}/gl-autodevops-minimal-port
 # This step will have access to the sources of the caller in a sub directory!
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       name: Checkout
       with:
         path: caller
+        ref: ${{ github.ref }}
         submodules: ${{ inputs.submodules }}
     - name: Kubernetes credentials
       run: |
@@ -134,7 +139,7 @@ jobs:
         kubectl get pod
     - name: Create tags based on git data
       id: meta
-      uses: docker/metadata-action@v5
+      uses: docker/metadata-action@v6
       with:
         flavor: |
           prefix=${{ inputs.container_tags_prefix }}
@@ -159,6 +164,7 @@ jobs:
           --set image.repository="${{ inputs.POSTGRES_REPOSITORY || vars.POSTGRES_REPOSITORY || 'bitnamilegacy/postgresql' }}" \
           --set image.tag="${{ inputs.POSTGRES_VERSION || vars.POSTGRES_VERSION || '15.9.0' }}" \
           --set persistence.size="${{ inputs.POSTGRES_SIZE ||  vars.POSTGRES_SIZE || '1Gi' }}" \
+          --set resourcesPreset="${{ inputs.POSTGRES_RESOURCES_PRESET || vars.POSTGRES_RESOURCES_PRESET || 'small' }}" \
           --namespace="${{ env.KUBE_NAMESPACE }}" \
           "${{ inputs.APP_NAME }}-postgres" \
           oci://registry-1.docker.io/bitnamicharts/postgresql
@@ -183,7 +189,7 @@ jobs:
         echo 'POSTGRES_DB=${{ inputs.POSTGRES_DB || secrets.POSTGRES_DB || vars.POSTGRES_DB }}' >> $GITHUB_ENV
         DATABASE_URL="${{ secrets.DATABASE_URL }}"
         if [ -z $DATABASE_URL ]
-        then if [ "${POSTGRES_HOST}x" != "x" ]; then echo "DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}}:5432/${POSTGRES_DB}" >> $GITHUB_ENV; fi
+        then if [ "${POSTGRES_HOST}x" != "x" ]; then echo "DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:5432/${POSTGRES_DB}" >> $GITHUB_ENV; fi
         else echo 'DATABASE_URL=${{ secrets.DATABASE_URL }}' >> $GITHUB_ENV
         fi
     - name: Create auto-deploy-values.yaml
@@ -332,7 +338,7 @@ jobs:
           --set application.secretName="${{ inputs.APP_NAME }}" ${{ secrets.HELM_UPGRADE_EXTRA_ARGS || vars.HELM_UPGRADE_EXTRA_ARGS }} \
         $chart  
     - name: auto-deploy-values.yaml
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       if: always()
       with:
         name: ${{ inputs.APP_NAME }}-auto-deploy-values-yaml
