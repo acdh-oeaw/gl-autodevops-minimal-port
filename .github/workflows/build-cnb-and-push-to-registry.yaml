@@ -59,10 +59,8 @@ jobs:
           fetch-depth: ${{ inputs.fetch-depth }}
           fetch-tags: ${{ inputs.fetch-tags }}
           submodules: ${{ inputs.submodules }}
-# CNB are not multi-arch ready as of May 2022 so this is not needed
-# It causes problems with this workflow so test later
-#      - name: Set up QEMU
-#        uses: docker/setup-qemu-action@v1
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v4
         with:
@@ -87,8 +85,8 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
       - name: Set up pack
-        uses: buildpacks/github-actions/setup-pack@v5.12.0
-      - name: Build using heroku/buildpacks:22 CNB
+        uses: buildpacks/github-actions/setup-pack@v5.12.5
+      - name: Build using heroku/buildpacks:24 CNB
         env:
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
           VARS_CONTEXT: ${{ toJson(vars) }}
@@ -103,7 +101,7 @@ jobs:
           fi
           echo -n "$SECRETS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("LC_K8S_SECRET_"))]|map("\(.key|sub("LC_K8S_SECRET_"; "")|ascii_downcase)=\(.value|tostring)")|.[]' >> secrets.env
           echo -n "$VARS_CONTEXT" | jq -r '[to_entries[]|select(.key|startswith("LC_K8S_SECRET_"))]|map("\(.key|sub("LC_K8S_SECRET_"; "")|ascii_downcase)=\(.value|tostring)")|.[]' >> secrets.env
-          pack build ${{ inputs.registry_root }}${{ inputs.image_tagged || inputs.image_name }}/source --env-file secrets.env --builder heroku/builder:22 \
+          pack build ${{ inputs.registry_root }}${{ inputs.image_tagged || inputs.image_name }}/source --env-file secrets.env --builder heroku/builder:24 \
             --cache-image ${{ inputs.registry_root }}${{ inputs.image_tagged || inputs.image_name }}/source:cache --publish          
           rm secrets.env
           cat > Dockerfile <<EOF
