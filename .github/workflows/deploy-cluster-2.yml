@@ -230,8 +230,6 @@ jobs:
         ingress:
           enabled: true
           path: "/"
-          annotations:
-            kubernetes.io/ingressClassName: "nginx"
         EOF
         if [ '${{ inputs.APP_ROOT }}x' != '/x' ]
         then echo '    nginx.ingress.kubernetes.io/app-root: ${{ inputs.APP_ROOT }}' >> tmp-auto-deploy-values.yaml
