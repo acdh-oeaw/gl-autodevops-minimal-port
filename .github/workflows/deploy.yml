@@ -323,6 +323,10 @@ jobs:
         EOF
         fi
         kubectl replace -f secrets.yaml -n "${{ env.KUBE_NAMESPACE }}" --force
+        # Pods only read the secret on start, so pass its checksum to the chart, which puts it in a
+        # pod annotation: a changed secret then rolls out new pods even if the image is unchanged.
+        # Lines are sorted so the checksum does not depend on the order of the secrets and variables.
+        echo "SECRET_CHECKSUM=$(sort secrets.yaml | sha256sum | cut -d' ' -f1)" >> "$GITHUB_ENV"
         rm secrets.yaml
     - name: Deploy using helm and the local helm chart
       env:
@@ -336,7 +340,8 @@ jobs:
         helm upgrade $release_name \
           --values auto-deploy-values.yaml --install --atomic --wait \
           --set application.database_url="$DATABASE_URL" \
-          --set application.secretName="${{ inputs.APP_NAME }}" ${{ secrets.HELM_UPGRADE_EXTRA_ARGS || vars.HELM_UPGRADE_EXTRA_ARGS }} \
+          --set application.secretName="${{ inputs.APP_NAME }}" \
+          --set-string application.secretChecksum="$SECRET_CHECKSUM" ${{ secrets.HELM_UPGRADE_EXTRA_ARGS || vars.HELM_UPGRADE_EXTRA_ARGS }} \
         $chart  
     - name: auto-deploy-values.yaml
       uses: actions/upload-artifact@v6
