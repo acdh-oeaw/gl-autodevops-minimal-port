@@ -18,6 +18,11 @@ on:
       PUBLIC_URL:
         required: false
         type: string
+      VALUES_FILES:
+        description: 'Additional helm values files in the calling repository, separated by spaces or newlines. Passed to helm after auto-deploy-values.yaml, in this order. Defaults to the VALUES_FILES variable'
+        required: false
+        type: string
+        default: ''
       KUBE_NAMESPACE:
         required: false
         type: string
@@ -193,6 +198,8 @@ jobs:
         else echo 'DATABASE_URL=${{ secrets.DATABASE_URL }}' >> $GITHUB_ENV
         fi
     - name: Create auto-deploy-values.yaml
+      env:
+        VALUES_FILES: ${{ inputs.VALUES_FILES || vars.VALUES_FILES }}
       run: |
         if [ -f caller/.github/auto-deploy-values.yaml ]
         then cp caller/.github/auto-deploy-values.yaml tmp-auto-deploy-values.yaml
@@ -258,18 +265,44 @@ jobs:
         if [ "${public_url}x" == 'x' ]
         then public_url=https://${environment_short}.${kube_ingress_base_domain}
         fi
-        repo_url="${{ github.repositoryUrl }}" \
-        ref_name=$(echo -n "${{ github.ref_name }}" | tr '/' '-' | tr '_' '-' | tr '[:upper:]' '[:lower:]' | cut -c1-24 | sed 's~-*$~~') \
-        environment_short="$environment_short" \
-        kube_ingress_base_domain="${{ inputs.C2_KUBE_INGRESS_BASE_DOMAIN || secrets.C2_KUBE_INGRESS_BASE_DOMAIN || vars.C2_KUBE_INGRESS_BASE_DOMAIN || vars.KUBE_INGRESS_BASE_DOMAIN }}" \
-        public_url="$public_url" \
-        service_id="${{ inputs.SERVICE_ID || vars.SERVICE_ID }}" \
-        docker_tag="${{ steps.meta.outputs.tags }}" \
-        repository=${docker_tag/:*/} \
-        tag=${docker_tag/*:/} \
-        app_name="${{ inputs.APP_NAME }}" \
-        app_name_in_url=$(echo -n "${app_name// /-}" | tr '_' '-' | tr '[:upper:]' '[:lower:]' ) \
-        envsubst '$repo_url $ref_name $environment_short $kube_ingress_base_domain $public_url $service_id $docker_tag $repository $tag $app_name $app_name_in_url $POSTGRES_ENABLED $POSTGRES_HOST $POSTGRES_USER $POSTGRES_PASSWORD $POSTGRES_DB $POSTGRES_VERSION $POSTGRES_SIZE $DATABASE_URL $DEPLOY_DATABASE' < tmp-auto-deploy-values.yaml > auto-deploy-values.yaml
+        # assigned before exporting, so a failing command substitution fails the step
+        set -o pipefail
+        repo_url="${{ github.repositoryUrl }}"
+        ref_name=$(echo -n "${{ github.ref_name }}" | tr '/' '-' | tr '_' '-' | tr '[:upper:]' '[:lower:]' | cut -c1-24 | sed 's~-*$~~')
+        kube_ingress_base_domain="${{ inputs.C2_KUBE_INGRESS_BASE_DOMAIN || secrets.C2_KUBE_INGRESS_BASE_DOMAIN || vars.C2_KUBE_INGRESS_BASE_DOMAIN || vars.KUBE_INGRESS_BASE_DOMAIN }}"
+        service_id="${{ inputs.SERVICE_ID || vars.SERVICE_ID }}"
+        docker_tag="${{ steps.meta.outputs.tags }}"
+        repository=${docker_tag/:*/}
+        tag=${docker_tag/*:/}
+        app_name="${{ inputs.APP_NAME }}"
+        app_name_in_url=$(echo -n "${app_name// /-}" | tr '_' '-' | tr '[:upper:]' '[:lower:]' )
+        export repo_url ref_name environment_short kube_ingress_base_domain public_url service_id docker_tag repository tag app_name app_name_in_url
+        envsubst_vars='$repo_url $ref_name $environment_short $kube_ingress_base_domain $public_url $service_id $docker_tag $repository $tag $app_name $app_name_in_url $POSTGRES_ENABLED $POSTGRES_HOST $POSTGRES_USER $POSTGRES_PASSWORD $POSTGRES_DB $POSTGRES_VERSION $POSTGRES_SIZE $DATABASE_URL $DEPLOY_DATABASE'
+        # same without the secrets, for the copies uploaded as workflow artifact
+        artifact_envsubst_vars='$repo_url $ref_name $environment_short $kube_ingress_base_domain $public_url $service_id $docker_tag $repository $tag $app_name $app_name_in_url $POSTGRES_ENABLED $POSTGRES_HOST $POSTGRES_USER $POSTGRES_DB $POSTGRES_VERSION $POSTGRES_SIZE $DEPLOY_DATABASE'
+        envsubst "$envsubst_vars" < tmp-auto-deploy-values.yaml > auto-deploy-values.yaml
+        mkdir -p artifact
+        envsubst "$artifact_envsubst_vars" < tmp-auto-deploy-values.yaml > artifact/auto-deploy-values.yaml
+        # Additional values files from the VALUES_FILES input or variable, numbered to keep their order and
+        # avoid name clashes. Passed to helm after auto-deploy-values.yaml, so they take precedence.
+        mkdir -p values-files artifact/values-files
+        extra_values_args=''
+        n=0
+        set -f
+        for values_file in $VALUES_FILES
+        do
+          if [ ! -f "caller/$values_file" ]
+          then echo "::error::VALUES_FILES: $values_file not found in the calling repository"; exit 1
+          fi
+          n=$((n + 1))
+          target="values-files/$n-$(basename "$values_file")"
+          echo "Using values from $values_file"
+          envsubst "$envsubst_vars" < "caller/$values_file" > "$target"
+          envsubst "$artifact_envsubst_vars" < "caller/$values_file" > "artifact/$target"
+          extra_values_args="$extra_values_args --values $target"
+        done
+        set +f
+        echo "EXTRA_VALUES_ARGS=$extra_values_args" >> $GITHUB_ENV
     - name: Prepare environment variables as K8s secret
       env:
         SECRETS_CONTEXT: ${{ toJson(secrets) }}
@@ -334,7 +367,7 @@ jobs:
         fi
         release_name=$(echo -n "${{ inputs.APP_NAME }}" | tr '[:upper:]' '[:lower:]' | tr '_' '-' | cut -c1-24 | sed 's~-*$~~') 
         helm upgrade $release_name \
-          --values auto-deploy-values.yaml --install --atomic --wait \
+          --values auto-deploy-values.yaml $EXTRA_VALUES_ARGS --install --atomic --wait \
           --set application.database_url="$DATABASE_URL" \
           --set application.secretName="${{ inputs.APP_NAME }}" ${{ secrets.HELM_UPGRADE_EXTRA_ARGS || vars.HELM_UPGRADE_EXTRA_ARGS }} \
         $chart  
@@ -343,4 +376,5 @@ jobs:
       if: always()
       with:
         name: ${{ inputs.APP_NAME }}-auto-deploy-values-yaml
-        path: auto-deploy-values.yaml
+        # copies with $POSTGRES_PASSWORD and $DATABASE_URL left unresolved, artifacts are not masked like logs
+        path: artifact/

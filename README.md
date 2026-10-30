@@ -134,6 +134,7 @@ jobs:
       POSTGRES_ENABLED: ${{ needs.setup_workflow_env.outputs.POSTGRES_ENABLED == 'true'}}
       default_port: "${{ needs.setup_workflow_env.outputs.default_port}}"
       submodules: ${{ needs.setup_workflow_env.outputs.submodules }}
+#      VALUES_FILES: .github/auto-deploy-values.worker.yaml # additional helm values, see "Customizing the deployment"
 ```
 
 You can pass many parameters variables like in gitlab or use GitHub's special read protected write only secrets.
@@ -204,7 +205,7 @@ Example DATABASE_URLs:
 Customizing the deployment
 --------------------------
 
-The `auto-deploy-app` helm chart from gl we use can be tweaked in many ways with a [values.yaml](.github\auto-deploy-app\values.yaml) file.
+The `auto-deploy-app` helm chart from gl we use can be tweaked in many ways with a [values.yaml](.github/auto-deploy-app/values.yaml) file.
 
 If you store your settings as `.github/auto-deploy-values.yaml` or `.gitlab/auto-deploy-values.yaml` in the root of your repoitory it will be picked up by the deployment script and used to customize the `auto-deploy-app` chart.
 
@@ -252,9 +253,69 @@ readinessProbe:
 
 `$var` variables will be replaced with the current values for the action running at the moment.
 
-See also:
-* [auto-deploy-values.yaml created in deploy.yaml](https://github.com/acdh-oeaw/gl-autodevops-minimal-port/blob/main/.github/workflows/deploy.yml#L184-L234)
-* [possible $vars](https://github.com/acdh-oeaw/gl-autodevops-minimal-port/blob/main/.github/workflows/deploy.yml#L253)
+If you deploy several apps from the same repository, they all share that `auto-deploy-values.yaml`. Settings that only one of them needs, for example `cronjobs`, can go into additional values files that you list in the `VALUES_FILES` input of the deploy workflow for that app, as paths relative to the root of your repository, separated by spaces or newlines. A listed file that does not exist fails the deployment. The same `$var` variables are replaced in them, and they are passed to helm after `auto-deploy-values.yaml` in the order given, so later files take precedence: maps are merged, lists are replaced.
+
+```yaml
+    uses: acdh-oeaw/gl-autodevops-minimal-port/.github/workflows/deploy.yml@main
+    with:
+      APP_NAME: worker-${{ needs.setup_workflow_env.outputs.environment_short }}
+      VALUES_FILES: .github/auto-deploy-values.worker.yaml
+      # ...
+```
+
+```yaml
+# .github/auto-deploy-values.worker.yaml
+cronjobs:
+  nightly-sync:
+    schedule: "26 2 * * *"
+    command: ["node"]
+    args: ["sync.js"]
+    restartPolicy: Never
+    # cronjobs inherit the top-level probes, which fail for a container that serves no http
+    livenessProbe:
+      enabled: false
+    readinessProbe:
+      enabled: false
+```
+
+This example is for the bundled `auto-deploy-app` chart. Note that it renders no cronjobs at all when `application.initializeCommand` is set. If you use your own chart (see below), use whatever keys that chart expects.
+
+Without the input, the `VALUES_FILES` variable is used, so environments can each set their own, for settings that differ between them, like the cert issuer or additional host names. Keep what all environments share in `auto-deploy-values.yaml`.
+
+```yaml
+# .github/auto-deploy-values.development.yaml, set VALUES_FILES to this path in the development environment
+ingress:
+  annotations:
+    cert-manager.io/cluster-issuer: "acdh-prod"
+```
+
+```yaml
+# .github/auto-deploy-values.production.yaml, set VALUES_FILES to this path in the production environment
+service:
+  additionalHosts:
+    - "example.org"
+ingress:
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+```
+
+To remove a key that an earlier file sets, set it to `null`.
+
+`auto-deploy-values.yaml` and the `VALUES_FILES` are uploaded as the `<APP_NAME>-auto-deploy-values-yaml` workflow artifact for debugging, with `$POSTGRES_PASSWORD` and `$DATABASE_URL` left unresolved so the artifact contains no database credentials.
+
+These `$var` variables are replaced:
+
+* `$repository`, `$tag`, `$docker_tag`: the image built by the workflow, without tag, the tag only, and both together
+* `$app_name`: the `APP_NAME` input; `$app_name_in_url`: the same in lowercase, with spaces and underscores replaced by hyphens
+* `$ref_name`: the branch or tag name in lowercase, with `/` and `_` replaced by hyphens, at most 24 characters
+* `$environment_short`: like `$ref_name`, but without a leading `feature/` or `feature_`
+* `$kube_ingress_base_domain`: the `KUBE_INGRESS_BASE_DOMAIN` input, secret or variable (`C2_KUBE_INGRESS_BASE_DOMAIN` when deploying to the second cluster)
+* `$public_url`: the `PUBLIC_URL` input or variable, by default `https://$environment_short.$kube_ingress_base_domain`
+* `$service_id`: the `SERVICE_ID` input or variable
+* `$repo_url`: the url of the GitHub repository
+* `$POSTGRES_ENABLED`, `$POSTGRES_HOST`, `$POSTGRES_USER`, `$POSTGRES_PASSWORD`, `$POSTGRES_DB`, `$POSTGRES_VERSION`, `$POSTGRES_SIZE`, `$DATABASE_URL`, `$DEPLOY_DATABASE`: see the database variables above
+
+See also the "Create auto-deploy-values.yaml" step in [deploy.yml](.github/workflows/deploy.yml), which also shows the values used when there is no `auto-deploy-values.yaml`.
 
 If you need to further customize deployment (like deploying an extra service like solr with your application) you can store a bundled helm chart in a directory `chart` in your repository and that will be used instead of the generic `auto-deploy-app` chart from this repository.
 
