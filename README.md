@@ -280,6 +280,27 @@ cronjobs:
 
 This example is for the bundled `auto-deploy-app` chart. Note that it renders no cronjobs at all when `application.initializeCommand` is set. If you use your own chart (see below), use whatever keys that chart expects.
 
+Without the input, the `VALUES_FILES` variable is used, so environments can each set their own, for settings that differ between them, like the cert issuer or additional host names. Keep what all environments share in `auto-deploy-values.yaml`.
+
+```yaml
+# .github/auto-deploy-values.development.yaml, set VALUES_FILES to this path in the development environment
+ingress:
+  annotations:
+    cert-manager.io/cluster-issuer: "acdh-prod"
+```
+
+```yaml
+# .github/auto-deploy-values.production.yaml, set VALUES_FILES to this path in the production environment
+service:
+  additionalHosts:
+    - "example.org"
+ingress:
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+```
+
+To remove a key that an earlier file sets, set it to `null`.
+
 `auto-deploy-values.yaml` and the `VALUES_FILES` are uploaded as the `<APP_NAME>-auto-deploy-values-yaml` workflow artifact for debugging, with `$POSTGRES_PASSWORD` and `$DATABASE_URL` left unresolved so the artifact contains no database credentials.
 
 These `$var` variables are replaced:
